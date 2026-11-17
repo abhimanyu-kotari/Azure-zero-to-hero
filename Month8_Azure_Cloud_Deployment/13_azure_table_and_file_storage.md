@@ -26,9 +26,9 @@
 
 ### The Composite Primary Key:
 Every entity in an Azure Table requires three mandatory system properties:
-1. **PartitionKey (String):** Groups related entities together onto the same physical storage node. Queries scoped to a single `PartitionKey` execute with sub-second speed.
+1. **PartitionKey (String):** Groups related entities together onto the same physical storage partition. Queries scoped to a single `PartitionKey` execute with sub-second speed.
 2. **RowKey (String):** The unique identifier for an entity within a given partition.
-3. **Timestamp (DateTime):** Automatically populated by Azure to support optimistic concurrency.
+3. **Timestamp (DateTime):** Automatically maintained by Azure to support optimistic concurrency control.
 
 ### When to Use Table Storage vs. Azure Cosmos DB:
 - **Choose Table Storage:** When storing terabytes of structured logs, telemetry, IoT sensor snapshots, or simple user profiles where cost must remain extremely low ($0.045 per GB/month).
@@ -141,7 +141,17 @@ sudo mount -t cifs //mystoragedemo12345.file.core.windows.net/corporate-share /m
 
 ---
 
-## 5. Summary Checklist
+## 5. Troubleshooting Azure Files & Table Storage
+
+| Problem | Cause | Resolution |
+| :--- | :--- | :--- |
+| Windows mounting fails with `Port 445 blocked`. | Residential ISPs frequently block outbound port 445 (SMB) to stop malware. | Connect via an Azure VPN Gateway, use an Azure VM (where port 445 is open), or use Azure File Sync. |
+| Table Storage queries are running slowly. | Query is executing a full table scan across all partitions. | Always filter by `PartitionKey` in your queries to limit search to a single partition node. |
+| Linux mount returns `mount error(13): Permission denied`. | Incorrect storage account key or special characters unescaped. | Re-copy the storage key from **Access keys** in the Azure Portal; verify no trailing spaces. |
+
+---
+
+## 6. Summary Checklist
 - [x] Azure Table Storage is a schemaless NoSQL store using a composite key (`PartitionKey` + `RowKey`).
 - [x] Ideal for storing massive, inexpensive semi-structured datasets like telemetry and logs.
 - [x] Azure Files delivers enterprise cloud file shares over standard SMB and NFS protocols.

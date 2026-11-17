@@ -7,7 +7,7 @@
 
 ## 1. Why Cloud Financial Operations (FinOps) Matters
 
-In traditional on-premises IT, buying hardware requires months of budgeting, purchase orders, and approvals (CapEx - Capital Expenditure). In the cloud, any developer can spin up a $5,000/month GPU cluster in 30 seconds with a mouse click (OpEx - Operational Expenditure).
+In traditional on-premises IT, purchasing hardware requires months of budgeting, hardware procurement, and executive purchase orders (**CapEx - Capital Expenditure**). In the cloud, any developer can spin up a $5,000/month GPU cluster in 30 seconds with a mouse click (**OpEx - Operational Expenditure**).
 
 Without strict governance and cost controls, companies frequently experience "bill shock". Azure provides built-in tools to tag, monitor, forecast, and constrain spending.
 
@@ -35,7 +35,7 @@ Tags can be applied via:
 1. **Azure Portal:** On any resource page under **Tags**.
 2. **Azure CLI:**
    ```bash
-   az tag create --resource-id <RESOURCE_ID> --tags Environment=Production Department=Engineering
+   az tag create --resource-id <RESOURCE_ID> --tags Environment=Production Department=Engineering Owner=abhimanyu@company.com
    ```
 3. **Azure Policy:** Enforce rules such as: *"Deny creation of any resource that lacks an `Owner` tag."*
 
@@ -94,7 +94,6 @@ Azure allows multiple alert tiers based on percentage of budget consumed:
 
 1. **Alert 1:**
    - `% of budget`: `50`
-   - Action group: (Optional)
    - Email recipients: Enter your personal email address.
 2. **Alert 2:**
    - `% of budget`: `80`
@@ -113,7 +112,17 @@ Azure allows multiple alert tiers based on percentage of budget consumed:
 
 ---
 
-## 6. Summary Checklist
+## 6. Troubleshooting Common Billing & Tagging Issues
+
+| Problem | Cause | Resolution |
+| :--- | :--- | :--- |
+| Costs incurred after deleting a VM. | Associated OS disk, Public IP, and NIC were not deleted. | Check your resource group for orphaned disks and public IP addresses; delete them manually. |
+| Tag filter shows zero spend in Cost Analysis. | Tags were recently applied; billing data has a 24-hour ingestion lag. | Wait 24 hours for billing data to index newly applied tags. |
+| Resource deployment fails with `RequestDisallowedByPolicy`. | An Azure Policy requires mandatory tags (e.g., `Environment`). | Add the required tags in the Basics tab before clicking Create. |
+
+---
+
+## 7. Summary Checklist
 - [x] Azure Tags provide metadata essential for departmental chargeback and resource tracking.
 - [x] Cost Analysis enables slicing cloud expenses by service, resource group, and custom tags.
 - [x] Budgets alert engineers when monthly spending crosses defined percentage thresholds.

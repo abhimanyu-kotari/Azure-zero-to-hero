@@ -7,7 +7,7 @@
 
 ## 1. Authentication vs. Authorization
 
-In cloud security and identity management, people often confuse these two fundamental concepts:
+In cloud security and identity management, engineers often confuse these two fundamental concepts:
 
 ```
 +--------------------------------------------------------------------------+
@@ -149,7 +149,17 @@ Azure organizes all cloud assets in a strict hierarchical tree. Every resource b
 
 ---
 
-## 6. Summary Checklist
+## 6. Troubleshooting Common RBAC & Identity Issues
+
+| Problem | Cause | Resolution |
+| :--- | :--- | :--- |
+| User cannot see resources after role assignment. | Entra ID token caching delay. | Have the user log out and log back in, or wait 2 minutes for token refresh. |
+| User cannot assign roles to colleagues despite being Contributor. | Contributor role explicitly denies authorization actions. | Only **Owner** or **User Access Administrator** can grant RBAC permissions to other users. |
+| Service principal deployment fails with `Forbidden`. | Pipeline service principal lacks permissions on the target subscription. | Grant the service principal `Contributor` role at the Resource Group or Subscription level. |
+
+---
+
+## 7. Summary Checklist
 - [x] Authentication (AuthN) proves *identity*; Authorization (AuthZ) enforces *permissions*.
 - [x] Microsoft Entra ID is the central cloud identity provider for Microsoft Azure.
 - [x] Azure RBAC enforces the Principle of Least Privilege across Management Groups, Subscriptions, and Resource Groups.

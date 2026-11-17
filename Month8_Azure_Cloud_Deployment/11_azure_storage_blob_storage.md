@@ -29,7 +29,7 @@ A single Storage Account provides four foundational services:
 
 ## 2. Deep Dive: What is Azure Blob Storage?
 
-**Blob** stands for **Binary Large Object**. It is Azure's unstructured data store (similar to AWS S3 or Google Cloud Storage). Unstructured data means data that does not fit into rigid rows and columns like a SQL database.
+**Blob** stands for **Binary Large Object**. It is Azure's unstructured data store (equivalent to AWS S3 or Google Cloud Storage). Unstructured data means data that does not conform to rigid rows and columns like a SQL database.
 
 ### Organization Hierarchy:
 ```
@@ -38,7 +38,7 @@ Storage Account  --->  Container (Bucket)  --->  Blob (File)
 ```
 
 ### Types of Blobs in Azure:
-1. **Block Blobs:** Used for standard files, documents, photos, and video streaming. Composed of discrete blocks of data (up to 190.7 TB total size).
+1. **Block Blobs:** Used for standard files, documents, photos, and video streaming. Composed of discrete blocks of data (up to 190.7 TB total file size).
 2. **Append Blobs:** Optimized for append-only operations where data is continuously written to the end of the file (ideal for real-time application logs).
 3. **Page Blobs:** Designed for frequent random read and write operations. Used as the underlying virtual hard disks (`.vhd` files) for Azure Virtual Machines.
 
@@ -90,8 +90,6 @@ To help organizations minimize storage spend, Azure provides four access tiers:
 
 ## 5. Security & Access: Access Keys vs. SAS Tokens vs. Entra ID
 
-How do applications and users authenticate with Blob Storage?
-
 ```
 +-------------------------------------------------------------------------+
 |                  STORAGE AUTHENTICATION METHODS                         |
@@ -112,40 +110,39 @@ How do applications and users authenticate with Blob Storage?
 
 ---
 
-## 6. Hands-on Lab: Creating Containers, Uploading Blobs & Generating SAS Tokens
+## 6. Hands-on Lab: Containers, Uploads & SAS Tokens
 
 ### Step 1: Create a Storage Account
-1. Open the [Azure Portal](https://portal.azure.com).
-2. Search for **Storage accounts** and click **+ Create**.
-3. **Basics Tab:**
+1. Search for **Storage accounts** in the Azure Portal and click **+ Create**.
+2. **Basics Tab:**
    - **Subscription:** Select your subscription.
    - **Resource group:** `rg-storage-demo`.
-   - **Storage account name:** `mystoragedemo12345` *(Must be globally unique, 3-24 characters, lowercase alphanumeric only!)*.
+   - **Storage account name:** `mystoragedemo12345` *(Globally unique, 3-24 characters, lowercase alphanumeric only!)*.
    - **Region:** `East US`.
    - **Performance:** **Standard** (general purpose v2).
    - **Redundancy:** **Locally-redundant storage (LRS)** (cheapest for learning).
-4. Click **Review + create** -> **Create**.
+3. Click **Review + create** -> **Create**.
 
 ---
 
-### Step 2: Create a Blob Container
-1. Open your new Storage Account.
-2. In the left menu under **Data storage**, click **Containers**.
+### Step 2: Create a Private Blob Container
+1. Open your Storage Account.
+2. In the left navigation menu under **Data storage**, click **Containers**.
 3. Click **+ Container**:
    - **Name:** `public-assets`.
-   - **Anonymous access level:** **Private (no anonymous access)** (Best practice security).
+   - **Anonymous access level:** **Private (no anonymous access)**.
    - Click **Create**.
 
 ---
 
 ### Step 3: Upload a File
-1. Click on your `public-assets` container.
+1. Click on `public-assets`.
 2. Click **Upload** -> select an image from your computer (e.g., `cloud-architecture.png`).
 3. Click **Upload**.
 4. Click the uploaded file and copy its **URL** (e.g., `https://mystoragedemo12345.blob.core.windows.net/public-assets/cloud-architecture.png`).
-5. Paste the URL into a new browser window.
+5. Open a new private browser tab and paste the URL.
    - **Result:** `<Error><Code>ResourceNotFound</Code><Message>The specified resource does not exist.</Message></Error>`
-   - *Why?* Because the container is private, preventing unauthorized internet strangers from viewing your files!
+   - *Why?* Because the container is private, protecting your files from unauthenticated internet visitors!
 
 ---
 
@@ -156,39 +153,36 @@ How do applications and users authenticate with Blob Storage?
    - **Start and expiry time:** Set expiry to **1 hour from now**.
    - **Allowed protocols:** `HTTPS only`.
 2. Click **Generate SAS token and URL**.
-3. Copy the **Blob SAS URL** (Notice the cryptographic query string appended: `?sp=r&st=2026-11-17...&sig=XYZ`).
+3. Copy the **Blob SAS URL** (Notice the cryptographic query string: `?sp=r&st=2026-11-17...&sig=XYZ`).
 4. Paste the SAS URL into your browser:
-   - **Result:** The image displays instantly!
-   - In 1 hour, that link permanently expires, protecting your data.
+   - **Result:** The image displays immediately!
+   - In 1 hour, that link permanently expires, safeguarding your storage asset.
 
 ---
 
-## 7. Azure CLI & AzCopy Cheat Sheet
+## 7. High-Speed Transfers: AzCopy & Azure Storage Explorer
 
 ```bash
-# 1. Create a storage account via CLI
-az storage account create \
-  --name storagedemo$RANDOM \
-  --resource-group rg-storage-demo \
-  --location eastus \
-  --sku Standard_LRS
+# High-speed parallel file upload using AzCopy
+azcopy copy "/local/photos/*" "https://mystoragedemo12345.blob.core.windows.net/public-assets?<SAS_TOKEN>" --recursive
 
-# 2. Upload a file using Azure CLI
-az storage blob upload \
-  --account-name storagedemo1234 \
-  --container-name public-assets \
-  --name myphoto.png \
-  --file ./myphoto.png \
-  --auth-mode login
-
-# 3. High-speed file transfer using AzCopy utility
-# Download AzCopy and transfer an entire directory in parallel:
-azcopy copy "/local/photos/*" "https://mystorage.blob.core.windows.net/public-assets?<SAS_TOKEN>" --recursive
+# High-speed file synchronization
+azcopy sync "/local/backup" "https://mystoragedemo12345.blob.core.windows.net/backups?<SAS_TOKEN>"
 ```
 
 ---
 
-## 8. Summary Checklist
+## 8. Troubleshooting Common Storage Issues
+
+| Problem | Cause | Resolution |
+| :--- | :--- | :--- |
+| Storage account name rejected during creation. | Name must be globally unique across all Azure customers. | Use lowercase letters and numbers only; append random digits (e.g., `storeabhimanyu992`). |
+| Public URL returns `PublicAccessNotPermitted`. | Storage account level disallows anonymous access. | Enable **Allow Blob public access** in Storage Account Configuration settings, or use SAS tokens. |
+| SAS token URL returns `AuthenticationFailed`. | Token expired or system clock skew. | Verify expiry timestamp on SAS token. Ensure your local client clock is synchronized with UTC. |
+
+---
+
+## 9. Summary Checklist
 - [x] Azure Storage Accounts provide Blobs, Files, Queues, and Tables in a unified service.
 - [x] Blob storage stores unstructured data (Block Blobs, Append Blobs, Page Blobs).
 - [x] Redundancy options (LRS, ZRS, GRS) safeguard data against hardware crashes and regional disasters.

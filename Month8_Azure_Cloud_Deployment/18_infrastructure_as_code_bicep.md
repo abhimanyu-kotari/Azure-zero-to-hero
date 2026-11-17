@@ -143,7 +143,17 @@ az bicep decompile --file azuredeploy.json
 
 ---
 
-## 4. Summary Checklist
+## 4. Troubleshooting Common Bicep Issues
+
+| Problem | Cause | Resolution |
+| :--- | :--- | :--- |
+| Deployment fails with `InvalidTemplate`. | Syntax error or unsupported API version. | Check API version string (e.g., `Microsoft.Storage/storageAccounts@2023-01-01`). Use VS Code Bicep extension for real-time validation. |
+| Name collision on globally unique resources. | Storage account name already taken globally. | Use `${uniqueString(resourceGroup().id)}` in your Bicep variables to guarantee uniqueness. |
+| `az bicep` command not recognized. | Azure CLI Bicep component not installed. | Run `az bicep install` to install or upgrade the Bicep CLI tool. |
+
+---
+
+## 5. Summary Checklist
 - [x] Bicep is Microsoft's concise, readable language for native Azure IaC.
 - [x] Transpiles directly into native ARM JSON templates before submission to Azure.
 - [x] Requires no external state files; Azure Resource Manager handles state tracking natively.

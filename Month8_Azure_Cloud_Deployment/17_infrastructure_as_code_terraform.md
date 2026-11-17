@@ -177,10 +177,33 @@ When you run `terraform apply`, Terraform creates a critical local file called `
 - **Rule 1:** Never manually edit `terraform.tfstate`.
 - **Rule 2:** In production teams, store state remotely in an **Azure Blob Storage container** with state locking (preventing two engineers from running `apply` at the same time).
 
+```hcl
+# Configuring Remote State Backend in Azure Blob Storage
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "rg-terraform-state"
+    storage_account_name = "tfstateabhimanyu123"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+  }
+}
+```
+
 ---
 
-## 5. Summary Checklist
+## 5. Troubleshooting Common Terraform Issues
+
+| Problem | Cause | Resolution |
+| :--- | :--- | :--- |
+| `terraform init` fails downloading provider. | Network/proxy issue or invalid provider version. | Verify internet access and remove `.terraform` folder and `.terraform.lock.hcl`, then re-run `terraform init`. |
+| `terraform apply` fails with `ResourceExists`. | Resource already created in Azure outside Terraform. | Import the existing resource into Terraform state using `terraform import <resource_type>.<name> <azure_resource_id>`. |
+| State lock error: `Error acquiring the state lock`. | Previous apply crashed or another engineer is running apply. | Run `terraform force-unlock <LOCK_ID>` after verifying no active deployment is running. |
+
+---
+
+## 6. Summary Checklist
 - [x] Infrastructure as Code (IaC) eliminates manual human errors and enables Git versioning.
 - [x] Terraform uses declarative HCL to manage cloud resources across providers.
 - [x] The core workflow is: `init` -> `plan` -> `apply` -> `destroy`.
 - [x] `terraform.tfstate` tracks real-world cloud metadata and must be safeguarded.
+- [x] Production teams store state files remotely in Azure Blob Storage with state locking.

@@ -5,9 +5,9 @@
 
 ---
 
-## 1. Why HTTP is Broken (The Man-in-the-Middle Attack)
+## 1. Why Plain HTTP is Broken (The Man-in-the-Middle Attack)
 
-When you browse the web using plain **HTTP (Port 80)**, every byte of data (credit card numbers, passwords, personal emails) travels across the internet in **unencrypted plain text**.
+When you browse the web using unencrypted **HTTP (Port 80)**, every byte of data (credit card numbers, passwords, personal emails) travels across the internet in **plain text**.
 
 Any router, ISP, or attacker on public Wi-Fi can intercept and read your packets (a **Man-in-the-Middle Attack** or Packet Sniffing).
 
@@ -109,7 +109,17 @@ Never store private SSL keys or `.pfx` certificate files in Git repositories or 
 
 ---
 
-## 6. Month 8 Final Summary & Certification Blueprint
+## 6. Troubleshooting Common SSL/TLS Certificate Errors
+
+| Error Message | Root Cause | Solution |
+| :--- | :--- | :--- |
+| `NET::ERR_CERT_COMMON_NAME_INVALID` | Domain name in browser does not match the certificate Subject Alternative Name (SAN). | Ensure the SSL certificate covers your custom domain (e.g., `*.yourdomain.com` or `www.yourdomain.com`). |
+| `NET::ERR_CERT_DATE_INVALID` | The SSL certificate has expired. | Renew the certificate or enable automated auto-renewal in Azure Key Vault / App Service. |
+| `SEC_ERROR_UNKNOWN_ISSUER` | Self-signed certificate or untrusted internal CA. | Install an official certificate from a recognized public Certificate Authority (e.g., Let's Encrypt, DigiCert). |
+
+---
+
+## 7. Month 8 Final Summary & Certification Blueprint
 
 Congratulations on completing the entire **Month 8: Azure Cloud Deployment** syllabus! 
 

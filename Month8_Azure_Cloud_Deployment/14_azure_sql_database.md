@@ -9,7 +9,7 @@
 
 A **Relational Database Management System (RDBMS)** organizes data into structured tables consisting of rows and columns with enforced relationships (Foreign Keys) and strict **ACID transactions** (Atomicity, Consistency, Isolation, Durability).
 
-When running SQL databases on Azure, you have three distinct hosting models:
+When hosting SQL databases on Microsoft Azure, you have three distinct architectural options:
 
 ```
 +--------------------------------------------------------------------------+
@@ -34,7 +34,7 @@ When running SQL databases on Azure, you have three distinct hosting models:
 
 ---
 
-## 2. Azure SQL Database: Key Architectures
+## 2. Azure SQL Database: Key Architectures & Purchasing Models
 
 ### Purchasing Models:
 1. **vCore-based Model (Recommended):** Provides independent, granular control over compute (number of virtual CPU cores) and storage size.
@@ -55,23 +55,24 @@ The **Serverless tier** automatically scales compute resources based on workload
 ### Step 1: Create Azure SQL Database in Portal
 1. Open the [Azure Portal](https://portal.azure.com).
 2. Search for **SQL databases** and click **+ Create**.
-3. **Basics Tab:**
-   - **Subscription:** Select your subscription.
-   - **Resource group:** `rg-database-demo`.
-   - **Database name:** `sqldb-enterprise-demo`.
-   - **Server:** Click *Create new*:
-     - Server name: `sqlserver-demo-12345` *(Must be globally unique)*.
-     - Location: `East US`.
-     - Authentication method: **Use SQL authentication**.
-     - Server admin login: `sqladmin`.
-     - Password: `ComplexPassword!2026`.
-     - Click **OK**.
-   - **Compute + storage:** Click *Configure database*:
-     - Service tier: **General Purpose (Serverless)**.
-     - Min vCores: `0.5`, Max vCores: `1`.
-     - Check `[x] Enable auto-pause` -> Delay: `1 hour`.
-     - Click **Apply**.
-4. Click **Review + create** -> **Create**. (Takes ~2 minutes).
+
+#### Tab 1: Basics
+- **Subscription:** Select your subscription.
+- **Resource group:** `rg-database-demo`.
+- **Database name:** `sqldb-enterprise-demo`.
+- **Server:** Click *Create new*:
+  - Server name: `sqlserver-demo-12345` *(Must be globally unique)*.
+  - Location: `East US`.
+  - Authentication method: **Use SQL authentication**.
+  - Server admin login: `sqladmin`.
+  - Password: `ComplexPassword!2026`.
+  - Click **OK**.
+- **Compute + storage:** Click *Configure database*:
+  - Service tier: **General Purpose (Serverless)**.
+  - Min vCores: `0.5`, Max vCores: `1`.
+  - Check `[x] Enable auto-pause` -> Delay: `1 hour`.
+  - Click **Apply**.
+3. Click **Review + create** -> **Create**. (Takes ~2 minutes).
 
 ---
 
@@ -131,7 +132,17 @@ Server=tcp:sqlserver-demo-12345.database.windows.net,1433;Initial Catalog=sqldb-
 
 ---
 
-## 5. Summary Checklist
+## 5. Troubleshooting Common Azure SQL Issues
+
+| Problem | Cause | Resolution |
+| :--- | :--- | :--- |
+| External connection fails with `Cannot open server ... client IP is not allowed`. | Client IP address is blocked by the SQL logical server firewall. | Open the SQL server in the portal -> **Security** -> **Networking** -> Add your client IP address to the firewall rules. |
+| First query after inactivity takes 15–30 seconds. | Serverless database auto-pause waking up. | This is normal behavior for serverless databases resuming from the paused state. Set auto-pause delay higher or use provisioned tier for critical production. |
+| Login failed for user `sqladmin`. | Incorrect password or SQL authentication disabled. | Reset the administrator password on the SQL Server overview page in the Azure Portal. |
+
+---
+
+## 6. Summary Checklist
 - [x] Azure SQL Database is a fully managed PaaS relational engine with built-in 99.99% availability.
 - [x] Serverless compute tier automatically scales down and pauses when idle to eliminate compute costs.
 - [x] Server firewall rules restrict access by client IP and manage Azure-internal network access.

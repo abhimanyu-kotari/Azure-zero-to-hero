@@ -7,12 +7,9 @@
 
 ## 1. What is an Azure Virtual Network (VNet)?
 
-An **Azure Virtual Network (VNet)** is your own isolated, private network in the Microsoft Azure cloud. It is the fundamental building block for your private network in Azure.
+An **Azure Virtual Network (VNet)** is your own isolated, private network boundary inside the Microsoft Azure cloud. It is the fundamental foundational block for all private cloud networking.
 
-Just like a physical office network connects desktops, printers, and database servers via Ethernet cables and switches, a VNet enables Azure resources (such as Virtual Machines, AKS clusters, and Database instances) to securely communicate with:
-1. Each other (internally)
-2. The internet (outbound or inbound)
-3. On-premises datacenters (via VPN Gateway or ExpressRoute)
+In an on-premises enterprise office, servers and computers communicate with each other through physical routers, switches, and Ethernet cables. In Azure, a VNet provides that identical network topology virtually via software-defined networking (SDN):
 
 ```
 +-------------------------------------------------------------------------+
@@ -21,12 +18,12 @@ Just like a physical office network connects desktops, printers, and database se
 +-------------------------------------------------------------------------+
 |                                                                         |
 |   +----------------------------+     +----------------------------+     |
-|   |   Frontend Web Subnet      |     |   Backend Database Subnet  |     |
+|   |    Frontend Web Subnet     |     |   Backend Database Subnet  |     |
 |   |        10.0.1.0/24         |     |        10.0.2.0/24         |     |
 |   |                            |     |                            |     |
-|   |   [ VM-Web-01 ]            |     |   [ VM-DB-01 ]             |     |
+|   |   [ VM-Web-01 ]            |     |   [ VM-Database-01 ]       |     |
 |   |   Private IP: 10.0.1.4     |     |   Private IP: 10.0.2.4     |     |
-|   |   Public IP: 20.x.x.x      |     |   (No Public IP - Private!)|     |
+|   |   Public IP: 20.x.x.x      |     |   (No Public IP - Hidden!) |     |
 |   +--------------+-------------+     +--------------^-------------+     |
 |                  |                                  |                   |
 |                  +======== Private VNet Traffic ====+                   |
@@ -34,220 +31,276 @@ Just like a physical office network connects desktops, printers, and database se
 +-------------------------------------------------------------------------+
 ```
 
+### Key Communications Handled by a VNet:
+1. **Communication among Azure Resources:** Virtual machines, AKS clusters, and Azure SQL Managed Instances communicate privately within the same VNet.
+2. **Communication with the Public Internet:** Outbound internet access is enabled by default; inbound access is controlled strictly via Public IPs and Network Security Groups.
+3. **Communication with On-Premises Networks:** Connect your corporate office or on-prem datacenter to Azure using **Azure VPN Gateway** (Site-to-Site IPsec) or **Azure ExpressRoute** (dedicated private fiber connection).
+
 ---
 
 ## 2. Understanding IP Addressing & CIDR Notation
 
 ### Public vs. Private IP Addresses
-- **Private IP Address:** Used exclusively *inside* your VNet. Devices on the public internet cannot see or ping this IP (e.g., `10.0.1.4`).
-- **Public IP Address:** Routable across the global internet. Used when external users need to reach your web applications (e.g., `52.183.45.12`).
+- **Private IP Address:** Routable exclusively *inside* your private VNet and peered networks. Devices on the public internet cannot see, ping, or connect to private IPs (e.g., `10.0.1.4`, `172.16.0.4`, `192.168.1.4`).
+- **Public IP Address:** Globally unique and routable across the worldwide internet. Used when external users or customers access your web servers (e.g., `52.183.45.12`).
 
-### RFC 1918 Private IP Ranges
-Azure VNets generally use the standard private IP address ranges:
-- `10.0.0.0` to `10.255.255.255` (Class A - Most common for enterprise clouds)
-- `172.16.0.0` to `172.31.255.255` (Class B)
-- `192.168.0.0` to `192.168.255.255` (Class C)
+### RFC 1918 Private IP Address Spaces:
+Azure VNets follow standard RFC 1918 private IPv4 allocation:
+- `10.0.0.0` to `10.255.255.255` (Class A - 16,777,216 addresses - Most common for enterprise clouds)
+- `172.16.0.0` to `172.31.255.255` (Class B - 1,048,576 addresses)
+- `192.168.0.0` to `192.168.255.255` (Class C - 65,536 addresses)
+
+---
 
 ### Demystifying CIDR Notation (Classless Inter-Domain Routing)
-CIDR is represented as `/X` appended to an IP address, representing the number of fixed network bits:
+
+In CIDR notation, the slash number (`/X`) indicates how many of the 32 bits are locked for the **Network ID**, leaving the remaining `(32 - X)` bits for **Host IDs**:
+
+```
+CIDR Calculation: 32 bits total
+Example: 10.0.0.0/16
+- Locked Network Bits: 16 bits (10.0)
+- Host Bits: 16 bits (2^16 = 65,536 total IP addresses)
+
+Example: 10.0.1.0/24
+- Locked Network Bits: 24 bits (10.0.1)
+- Host Bits: 8 bits (2^8 = 256 total IP addresses)
+```
 
 | CIDR Prefix | Total IP Addresses | Azure Usable IPs | Common Use Case |
 | :--- | :--- | :--- | :--- |
-| **/16** (e.g., `10.0.0.0/16`) | 65,536 | 65,531 | Typical entire Virtual Network address space |
-| **/24** (e.g., `10.0.1.0/24`) | 256 | 251 | Typical Subnet size for VMs, containers, apps |
+| **/16** (e.g., `10.0.0.0/16`) | 65,536 | 65,531 | Standard Virtual Network overall address space |
+| **/24** (e.g., `10.0.1.0/24`) | 256 | 251 | Standard Subnet for Web, App, or DB tiers |
 | **/26** (e.g., `10.0.3.0/26`) | 64 | 59 | Azure Bastion or Application Gateway Subnet |
-| **/28** (e.g., `10.0.4.0/28`) | 16 | 11 | Small specialized service subnet |
-
-> [!IMPORTANT]
-> **The 5 Azure Reserved IPs:**  
-> In every subnet you create in Azure, Microsoft automatically reserves **5 IP addresses**. If your subnet is `10.0.1.0/24` (256 total IPs):
-> 1. `10.0.1.0`: Network address (Protocol requirement)
-> 2. `10.0.1.1`: Default gateway (Azure uses this to route traffic out of the subnet)
-> 3. `10.0.1.2`: Azure DNS mapping
-> 4. `10.0.1.3`: Azure DNS secondary / internal coordination
-> 5. `10.0.1.255`: Network broadcast address (Azure does not use broadcast, but reserves it)
-> 
-> Therefore, the first virtual machine deployed into a `10.0.1.0/24` subnet will **always** receive `10.0.1.4`!
+| **/27** (e.g., `10.0.4.0/27`) | 32 | 27 | Azure Firewall or VPN Gateway Subnet |
+| **/28** (e.g., `10.0.5.0/28`) | 16 | 11 | Small specialized utility subnet |
 
 ---
 
-## 3. Subnets & Network Security Groups (NSGs)
+### The 5 Azure Reserved IP Addresses (Critical Concept!)
 
-### What is a Subnet?
-A subnet is a range of IP addresses within a VNet. Subnets let you organize and isolate different tiers of your application (e.g., Public Web Subnet vs. Private DB Subnet).
-
-### Network Security Groups (NSGs)
-An **NSG** acts as a stateful packet-filtering firewall at the subnet or network interface (NIC) level.
+In any standard networking environment, 2 IPs are reserved (Network and Broadcast). However, in **every subnet created in Microsoft Azure, exactly 5 IP addresses are reserved**:
 
 ```
-Traffic Packet Arrives: Source IP: Any, Port 80
-                    |
-                    v
-+-------------------------------------------------------------+
-|               NETWORK SECURITY GROUP EVALUATION             |
-|                                                             |
-| Priority 100: Allow SSH (Port 22)       -> No match, next   |
-| Priority 200: Allow HTTP (Port 80)      -> MATCH! ALLOWED   |
-| Priority 300: Deny All Web              -> Skipped          |
-| Priority 65000: Default AllowVNet       -> Skipped          |
-| Priority 65500: Default DenyAllInBound  -> Skipped          |
-+-------------------------------------------------------------+
+Suppose your Subnet is: 10.0.1.0/24 (256 Total IPs)
+---------------------------------------------------------------------------
+1. 10.0.1.0   -> Network Address (Protocol standard)
+2. 10.0.1.1   -> Default Gateway (Azure routes traffic out of the subnet)
+3. 10.0.1.2   -> Azure DNS Mapping (Resolves Azure hostnames)
+4. 10.0.1.3   -> Azure DNS Secondary / Internal Fabric Coordination
+5. 10.0.1.255 -> Network Broadcast Address (Azure does not use broadcast)
+---------------------------------------------------------------------------
+Result: Available usable IPs = 256 - 5 = 251 IPs.
+The very FIRST virtual machine deployed will ALWAYS receive: 10.0.1.4!
 ```
-
-### Key Rules of NSGs:
-1. **Priority Numbers:** Range from **100 to 4096**.
-2. **Lowest Number Wins:** Rules are evaluated in strict priority order. The moment a rule matches the packet, evaluation **stops**.
-3. **Default Rules:** Azure provides built-in fallback rules at priorities 65000+ that cannot be deleted:
-   - `AllowVNetInBound`: Any VM in the VNet can talk to any other VM in the VNet.
-   - `AllowAzureLoadBalancerInBound`: Allows Azure health probes to monitor VMs.
-   - `DenyAllInBound`: Drops all other incoming traffic from the internet.
 
 ---
 
-## 4. Connecting Networks: Azure VNet Peering
+## 3. Subnets & Multi-Tier Architecture
 
-By default, Virtual Networks are completely isolated from one another. A VM in `VNet-A` cannot talk to a VM in `VNet-B`, even if they are in the same subscription!
+A **Subnet** is a range of IP addresses within a VNet. By carving a VNet into logical subnets, you can establish an enterprise multi-tier architecture with defense-in-depth security:
 
-**VNet Peering** connects two Virtual Networks seamlessly:
-- Traffic flows over **Microsoft's private high-speed fiber backbone**, never traversing the public internet.
-- Latency is identical to communication within a single network.
-- **Two types:**
-  1. **Regional VNet Peering:** Both VNets are in the same Azure region (e.g., both in `East US`).
-  2. **Global VNet Peering:** VNets reside in different regions worldwide (e.g., `East US` and `West Europe`).
+```
++---------------------------------------------------------------------------+
+|                   ENTERPRISE 3-TIER SUBNET ARCHITECTURE                   |
++---------------------------------------------------------------------------+
+|                                                                           |
+|  1. PUBLIC WEB SUBNET (10.0.1.0/24):                                      |
+|     - Hosts: Public Load Balancer & Nginx Ingress Controllers.            |
+|     - NSG Rule: Allows Inbound Port 80/443 from Internet.                 |
+|                                |                                          |
+|                                v Internal private traffic only            |
+|  2. PRIVATE APPLICATION SUBNET (10.0.2.0/24):                             |
+|     - Hosts: Backend microservices, Node.js / Java business logic.        |
+|     - NSG Rule: Allows traffic ONLY from Web Subnet; drops Internet!      |
+|                                |                                          |
+|                                v Internal private traffic only            |
+|  3. ISOLATED DATABASE SUBNET (10.0.3.0/24):                               |
+|     - Hosts: SQL Server, PostgreSQL, MySQL databases.                     |
+|     - NSG Rule: Allows Port 1433/5432 ONLY from Application Subnet!       |
+|     - Completely inaccessible from the internet or web tier!              |
+|                                                                           |
++---------------------------------------------------------------------------+
+```
+
+---
+
+## 4. Network Security Groups (NSGs): The Cloud Firewall
+
+A **Network Security Group (NSG)** acts as a stateful packet-filtering firewall that controls inbound and outbound network traffic to network interfaces (NICs) or subnets.
+
+### The 5-Tuple Rule Structure:
+Every rule in an NSG is evaluated using 5 specific attributes:
+1. **Source:** Where the traffic comes from (IP address, CIDR block, or Service Tag like `Internet`).
+2. **Source Port Range:** The port used by the client (usually `*` / ephemeral).
+3. **Destination:** Where the traffic is going (IP address, CIDR block, or Subnet).
+4. **Destination Port Range:** The port the service listens on (e.g., `80`, `443`, `22`).
+5. **Protocol:** `TCP`, `UDP`, or `Any`.
+
+```
+Incoming Internet Packet: Source=Any, Destination Port=80, Protocol=TCP
+                                  |
+                                  v
++-------------------------------------------------------------------------+
+|                  NSG RULE EVALUATION FLOWCHART                          |
++-------------------------------------------------------------------------+
+|                                                                         |
+|  Rule Priority 100: Allow SSH (Port 22)       -> Match? NO -> Next      |
+|                                                                         |
+|  Rule Priority 200: Allow HTTP (Port 80)      -> Match? YES!            |
+|  ===> ACTION: ALLOW! Traffic admitted! Evaluation TERMINATES!           |
+|                                                                         |
+|  Rule Priority 300: Deny All Web              -> SKIPPED!               |
+|                                                                         |
+|  Rule Priority 65000: Default AllowVNet       -> SKIPPED!               |
+|  Rule Priority 65500: Default DenyAllInBound  -> SKIPPED!               |
++-------------------------------------------------------------------------+
+```
+
+### The 3 Golden Rules of NSGs:
+1. **Priority Values (100 to 4096):** Lower numbers have higher priority and are evaluated first!
+2. **First Match Wins:** As soon as an incoming packet matches a rule, processing stops immediately.
+3. **NSGs are Stateful:** If you allow inbound traffic on port 80, the outgoing return response packet is **automatically allowed** regardless of outbound rules!
+
+### Built-in Default Rules (Cannot be deleted):
+- `AllowVNetInBound` (Priority 65000): Allows all resources within the same VNet to talk to each other.
+- `AllowAzureLoadBalancerInBound` (Priority 65001): Allows Azure health probes to check server status.
+- `DenyAllInBound` (Priority 65500): Drops all other incoming traffic from the outside world.
+
+---
+
+## 5. What is Azure VNet Peering?
+
+By default, Virtual Networks are completely isolated from one another. A VM in `VNet-A` cannot communicate with a VM in `VNet-B`, even if they exist in the exact same Azure subscription and region!
+
+**Azure VNet Peering** connects two Virtual Networks seamlessly:
+- Traffic routes directly over **Microsoft’s private fiber backbone**, never touching the public internet.
+- Delivers the same ultra-low latency and high bandwidth as if both VMs were in the exact same network.
+- **Two Varieties:**
+  1. **Regional VNet Peering:** Connects VNets in the **same** Azure region (e.g., `East US` to `East US`).
+  2. **Global VNet Peering:** Connects VNets in **different** Azure regions worldwide (e.g., `East US` to `West Europe`).
 
 ```
 +--------------------------+                      +--------------------------+
 |      VNet-1 (East US)    |                      |    VNet-2 (West Europe)  |
 |   Address: 10.1.0.0/16   |                      |   Address: 10.2.0.0/16   |
 |                          |                      |                          |
-|    [ VM-App-1 ]          |                      |    [ VM-App-2 ]          |
+|    [ VM-East-01 ]        |                      |    [ VM-Europe-01 ]      |
 |    IP: 10.1.1.4          |                      |    IP: 10.2.1.4          |
 +------------+-------------+                      +-------------^------------+
              |                                                  |
              +======== Azure Global VNet Peering ===============+
-                       - No Internet traversal
-                       - End-to-end encrypted backbone
+                       - 100% Private Microsoft Backbone
+                       - Zero Public Internet Exposure
+                       - Sub-millisecond regional latency
 ```
 
-> [!WARNING]
-> **No Overlapping CIDR Blocks:** VNet Peering **requires** that the two VNets have non-overlapping IP address spaces. For example, you cannot peer `10.0.0.0/16` with another `10.0.0.0/16`.
+> [!CAUTION]
+> **Non-Overlapping CIDR Rule:** VNet Peering **strictly prohibits** overlapping IP address spaces. If VNet-1 is `10.0.0.0/16`, VNet-2 cannot be `10.0.0.0/16`. They must have distinct CIDR blocks (e.g., `10.1.0.0/16` and `10.2.0.0/16`).
 
 ---
 
-## 5. Hands-on Lab: Configuring VNet Peering Step-by-Step
+## 6. Hands-on Lab: Deploying Two VNets & Configuring Peering
 
-In this lab, we prove that two isolated VNets cannot talk until Peering is enabled:
+In this lab from the video, M Prashant proves that two separate VNets cannot communicate until bidirectional Peering is established:
 
-### Step 1: Create VNet-1 and VM-1
-1. In Azure Portal, create a Resource Group: `rg-networking-demo`.
-2. Create **Virtual Network 1**:
+### Step 1: Create Resource Group
+```bash
+az group create --name rg-networking-demo --location eastus
+```
+
+---
+
+### Step 2: Create VNet-1 and Deploy VM-1
+1. **Create VNet-1:**
    - Name: `vnet-production-east`
-   - Region: `East US`
-   - IPv4 Address Space: `10.1.0.0/16`
-   - Subnet Name: `subnet-app`, Subnet range: `10.1.1.0/24`
-3. Launch **VM-1** inside `vnet-production-east`:
+   - Address Space: `10.1.0.0/16`
+   - Subnet Name: `subnet-app`
+   - Subnet Prefix: `10.1.1.0/24`
+2. **Deploy VM-1:**
    - Name: `vm-east-01`
-   - Private IP will be: `10.1.1.4`
+   - Image: `Ubuntu 22.04 LTS`
+   - Subnet: `subnet-app` in `vnet-production-east`
+   - Authentication: SSH key or password
+   - Note Private IP: `10.1.1.4`
 
 ---
 
-### Step 2: Create VNet-2 and VM-2
-1. Create **Virtual Network 2**:
+### Step 3: Create VNet-2 and Deploy VM-2
+1. **Create VNet-2:**
    - Name: `vnet-analytics-east`
-   - Region: `East US`
-   - IPv4 Address Space: `10.2.0.0/16` *(Notice non-overlapping IP!)*
-   - Subnet Name: `subnet-data`, Subnet range: `10.2.1.0/24`
-2. Launch **VM-2** inside `vnet-analytics-east`:
+   - Address Space: `10.2.0.0/16` *(Notice distinct, non-overlapping range!)*
+   - Subnet Name: `subnet-data`
+   - Subnet Prefix: `10.2.1.0/24`
+2. **Deploy VM-2:**
    - Name: `vm-analytics-01`
-   - Private IP will be: `10.2.1.4`
+   - Image: `Ubuntu 22.04 LTS`
+   - Subnet: `subnet-data` in `vnet-analytics-east`
+   - Note Private IP: `10.2.1.4`
 
 ---
 
-### Step 3: Test Initial Connectivity (Failure Expected)
-1. SSH into `vm-east-01`.
+### Step 4: Test Pre-Peering Connectivity (Expected Failure)
+1. SSH into `vm-east-01` using its Public IP.
 2. Attempt to ping the private IP of `vm-analytics-01`:
-   ```bash
-   ping 10.2.1.4
-   ```
-3. **Result:** 100% packet loss! The networks are completely isolated.
-
----
-
-### Step 4: Configure VNet Peering
-1. In the Azure Portal, go to `vnet-production-east`.
-2. In the left navigation menu under **Settings**, click **Peerings**.
-3. Click **+ Add**:
-   - **This virtual network (vnet-production-east):**
-     - Peering link name: `peering-east-to-analytics`
-     - Allow traffic to remote virtual network: `Allow (default)`
-   - **Remote virtual network (vnet-analytics-east):**
-     - Peering link name: `peering-analytics-to-east`
-     - Virtual network deployment model: `Resource manager`
-     - Select `vnet-analytics-east`
-     - Allow traffic to remote virtual network: `Allow (default)`
-4. Click **Add**. Azure will configure the bidirectional peering link in seconds.
-5. The peering status will display: **Connected**.
-
----
-
-### Step 5: Verify Connectivity (Success!)
-1. Return to the SSH session on `vm-east-01`.
-2. Run the ping command again:
    ```bash
    ping -c 4 10.2.1.4
    ```
-3. **Result:** Success! Packets are answered with sub-millisecond latency:
+3. **Result:** `100% packet loss` (Request timed out). The two networks are completely isolated.
+
+---
+
+### Step 5: Configure Bidirectional VNet Peering in the Portal
+1. In the Azure Portal, open `vnet-production-east`.
+2. Under **Settings** in the left menu, click **Peerings**.
+3. Click **+ Add**:
+   - **This virtual network (vnet-production-east):**
+     - Peering link name: `peer-east-to-analytics`
+     - Traffic to remote virtual network: **Allow (default)**
+     - Traffic forwarded from remote virtual network: **Allow (default)**
+   - **Remote virtual network (vnet-analytics-east):**
+     - Peering link name: `peer-analytics-to-east`
+     - Virtual network deployment model: `Resource manager`
+     - Select: `vnet-analytics-east`
+     - Traffic to remote virtual network: **Allow (default)**
+4. Click **Add**. Azure provisions both peering links simultaneously.
+5. In the Peering table, verify that the **Peering status** reads: **Connected**.
+
+---
+
+### Step 6: Verify Post-Peering Connectivity (Success!)
+1. Return to your terminal session on `vm-east-01`.
+2. Re-run the ping command:
+   ```bash
+   ping -c 4 10.2.1.4
    ```
-   64 bytes from 10.2.1.4: icmp_seq=1 ttl=64 time=0.812 ms
-   64 bytes from 10.2.1.4: icmp_seq=2 ttl=64 time=0.745 ms
+3. **Result:** Success! Packets are answered immediately with sub-millisecond response times:
+   ```
+   64 bytes from 10.2.1.4: icmp_seq=1 ttl=64 time=0.842 ms
+   64 bytes from 10.2.1.4: icmp_seq=2 ttl=64 time=0.761 ms
+   64 bytes from 10.2.1.4: icmp_seq=3 ttl=64 time=0.755 ms
+   64 bytes from 10.2.1.4: icmp_seq=4 ttl=64 time=0.749 ms
+
+   --- 10.2.1.4 ping statistics ---
+   4 packets transmitted, 4 received, 0% packet loss, time 3004ms
    ```
 
 ---
 
-## 6. Azure CLI Commands for Networking
+## 7. Troubleshooting Common Azure Networking Issues
 
-```bash
-# Create a Resource Group
-az group create --name rg-networking-demo --location eastus
-
-# Create Virtual Network 1
-az network vnet create \
-  --resource-group rg-networking-demo \
-  --name vnet-production-east \
-  --address-prefixes 10.1.0.0/16 \
-  --subnet-name subnet-app \
-  --subnet-prefixes 10.1.1.0/24
-
-# Create Virtual Network 2
-az network vnet create \
-  --resource-group rg-networking-demo \
-  --name vnet-analytics-east \
-  --address-prefixes 10.2.0.0/16 \
-  --subnet-name subnet-data \
-  --subnet-prefixes 10.2.1.0/24
-
-# Create VNet Peering from VNet-1 to VNet-2
-az network vnet peering create \
-  --name peering-east-to-analytics \
-  --resource-group rg-networking-demo \
-  --vnet-name vnet-production-east \
-  --remote-vnet vnet-analytics-east \
-  --allow-vnet-access
-
-# Create return Peering from VNet-2 to VNet-1
-az network vnet peering create \
-  --name peering-analytics-to-east \
-  --resource-group rg-networking-demo \
-  --vnet-name vnet-analytics-east \
-  --remote-vnet vnet-production-east \
-  --allow-vnet-access
-```
+| Issue | Likely Cause | Solution |
+| :--- | :--- | :--- |
+| Ping between peered VMs fails despite Peering showing "Connected". | Ubuntu/Linux firewall (UFW) or Azure NSG is blocking ICMP protocol. | Add an NSG inbound rule allowing protocol `ICMP` from source CIDR `10.0.0.0/8`. Ensure OS firewall `ufw allow proto icmp` is enabled. |
+| Cannot create VNet Peering link. | The two VNets have overlapping IP address spaces. | You cannot peer overlapping CIDRs. You must recreate one of the VNets with a non-overlapping address block. |
+| VNet Peering status says "Initiated" instead of "Connected". | Only one direction of the peering link was created. | VNet peering must be created in both directions (VNet1 -> VNet2 AND VNet2 -> VNet1). |
+| Virtual machine does not receive the expected private IP. | The first 4 IP addresses (.0 to .3) are reserved by Azure. | The first VM in `10.0.1.0/24` will always receive `10.0.1.4`. |
 
 ---
 
-## 7. Summary Checklist
-- [x] VNets provide isolated private IP boundaries in Azure.
-- [x] Subnets partition a VNet into logical IP tiers; Azure reserves the first 4 and last 1 IP in every subnet.
-- [x] Network Security Groups (NSGs) filter traffic using priority numbers (100–4096; lower = higher priority).
-- [x] VNet Peering links disparate VNets over Microsoft's encrypted backbone with zero public internet exposure.
-- [x] Peered VNets cannot have overlapping CIDR address spaces.
+## 8. Summary Checklist
+- [x] Azure Virtual Networks provide secure, isolated private IP environments for cloud resources.
+- [x] Subnets partition a VNet into tiers; Azure reserves 5 IP addresses in every subnet (.0, .1, .2, .3, .255).
+- [x] Network Security Groups (NSGs) act as stateful firewalls evaluated by priority (100–4096; lowest number wins).
+- [x] VNet Peering links separate VNets over Microsoft's encrypted backbone with zero public internet traversal.
+- [x] Peered VNets must have strictly non-overlapping CIDR address blocks.

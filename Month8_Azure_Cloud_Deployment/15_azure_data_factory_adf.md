@@ -7,21 +7,21 @@
 
 ## 1. What is ETL and Data Integration?
 
-Enterprises accumulate massive volumes of data across isolated systems: legacy on-premises SQL databases, external SaaS tools (Salesforce, SAP), IoT devices, and cloud object stores (AWS S3, Azure Blob).
+Modern enterprises store business data across dozens of isolated systems: legacy on-premises SQL databases, external SaaS tools (Salesforce, SAP, Workday), IoT telemetry, and cloud object stores (AWS S3, Azure Blob Storage).
 
-To derive business intelligence, data must be gathered into a centralized repository (like Azure Synapse Analytics or a Data Lake):
+To perform analytics, reporting, and train machine learning models, data must be consolidated into a centralized data warehouse or data lake:
 
 ```
 +--------------------------------------------------------------------------+
 |                         ETL VS. ELT DATA FLOW                            |
 +--------------------------------------------------------------------------+
 |                                                                          |
-|  EXTRACT (E):      Read raw data from 90+ diverse sources.               |
+|  EXTRACT (E):      Pull raw data from 90+ diverse external systems.      |
 |                    (e.g., MySQL, Oracle, On-prem files, REST APIs)       |
 |                                                                          |
-|  TRANSFORM (T):    Cleanse, filter, aggregate, anonymize, and reformat.  |
+|  TRANSFORM (T):    Filter, aggregate, cleanse, anonymize, and reformat.  |
 |                                                                          |
-|  LOAD (L):         Write structured results into target data warehouses. |
+|  LOAD (L):         Write structured data into target analytical stores.  |
 |                    (e.g., Azure SQL Database, Synapse, Snowflake)        |
 |                                                                          |
 +--------------------------------------------------------------------------+
@@ -63,7 +63,7 @@ To derive business intelligence, data must be gathered into a centralized reposi
 ```
 
 ### Definitions:
-1. **Linked Services:** The connection manager (defines connection string, authentication keys, and server address to external data stores).
+1. **Linked Services:** Connection managers that store connection strings, server endpoints, and authentication keys to external data stores.
 2. **Datasets:** Named pointers that specify the exact file or table structure within a Linked Service (e.g., `customers.csv` inside container `raw-data`).
 3. **Activities:** Discrete execution steps in a pipeline (e.g., *Copy Data*, *Execute Stored Procedure*, *Notebook execution*, *If Condition*).
 4. **Pipelines:** Logical groupings of activities designed to perform a complete task.
@@ -140,7 +140,17 @@ In this lab from the video, M Prashant demonstrates extracting a customer CSV fi
 
 ---
 
-## 4. Summary Checklist
+## 4. Troubleshooting Common ADF Pipeline Errors
+
+| Problem | Cause | Resolution |
+| :--- | :--- | :--- |
+| Pipeline fails with `Cannot connect to SQL Database`. | Azure SQL server firewall blocking ADF. | Go to your Azure SQL server in portal -> **Networking** -> Check `Allow Azure services and resources to access this server`. |
+| Copy Data activity fails on column type mismatch. | String in CSV exceeds target SQL `VARCHAR` length. | Inspect source data or expand SQL column size using `ALTER TABLE Customers ALTER COLUMN Email VARCHAR(255)`. |
+| Pipeline cannot reach on-premises database. | On-premises network behind corporate firewall. | Deploy a **Self-Hosted Integration Runtime (SHIR)** on an internal network VM and point the Linked Service to it. |
+
+---
+
+## 5. Summary Checklist
 - [x] Azure Data Factory orchestrates serverless ETL/ELT pipelines across hybrid cloud environments.
 - [x] Pipelines contain Activities (such as Copy Data, Data Flows, and Databricks jobs).
 - [x] Linked Services store connection credentials; Datasets define target tables and files.
