@@ -1,132 +1,138 @@
-# 14 - Azure SQL Database (RDBMS)
+# 14 - Relational Databases: Azure SQL Database (PaaS RDBMS)
 
 > **Video Reference:** [Microsoft AZURE in ONE VIDEO (MPrashant)](https://youtu.be/M1erI5a2wxQ)  
 > **Source Timeframe:** `06:22:08` to `06:50:47`
 
 ---
 
-## 1. What is an RDBMS?
+## 1. Relational Databases (RDBMS) in the Cloud
 
-A **Relational Database Management System (RDBMS)** stores structured data into organized tables composed of rows and columns. 
+A **Relational Database Management System (RDBMS)** organizes data into structured tables consisting of rows and columns with enforced relationships (Foreign Keys) and strict **ACID transactions** (Atomicity, Consistency, Isolation, Durability).
 
-Tables relate to one another through **Primary Keys** and **Foreign Keys** (e.g., a `Customers` table linked to an `Orders` table). Relational databases enforce strict **ACID transactions** (Atomicity, Consistency, Isolation, Durability) so financial transfers and inventory counts never get corrupted.
-
----
-
-## 2. The Three Ways to Run SQL on Microsoft Azure
+When running SQL databases on Azure, you have three distinct hosting models:
 
 ```
-Control & Maintenance                                                    Automated & Managed
---------------------------------------------------------------------------------------------
-[ SQL on Azure VMs (IaaS) ]  --->  [ SQL Managed Instance (PaaS) ]  --->  [ Azure SQL Database (PaaS) ]
-- You manage OS & SQL Server        - Managed instance with 100%          - Pure Database as a Service
-- You handle backups & patching       on-prem feature compatibility        - Zero OS or instance management
++--------------------------------------------------------------------------+
+|                        AZURE SQL DEPLOYMENT OPTIONS                      |
++--------------------------------------------------------------------------+
+|                                                                          |
+|  1. SQL SERVER ON AZURE VM (IaaS)                                        |
+|     - You manage: OS patching, SQL licensing, backups, storage volumes.  |
+|     - Best for: Full OS control or legacy OS dependencies.               |
+|                                                                          |
+|  2. AZURE SQL MANAGED INSTANCE (PaaS)                                    |
+|     - 100% compatibility with on-premises SQL Server instances.          |
+|     - Native VNet integration, SQL Agent jobs, cross-database queries.   |
+|                                                                          |
+|  3. AZURE SQL DATABASE (Fully Managed PaaS)                              |
+|     - Zero OS or server management.                                      |
+|     - Built-in High Availability (99.99% SLA), automated backups.        |
+|     - Serverless auto-pause (stops billing when idle!).                  |
+|                                                                          |
++--------------------------------------------------------------------------+
 ```
 
-### 1. SQL Server on Azure VMs (IaaS)
-- You deploy a Windows/Linux VM and install Microsoft SQL Server on it.
-- You have 100% control, but you are responsible for OS updates, database version patches, manual backups, and high availability clustering.
+---
 
-### 2. Azure SQL Managed Instance (PaaS)
-- A fully managed SQL instance designed for enterprise companies migrating legacy on-premises SQL Server databases to the cloud with nearly 100% feature compatibility (supports SQL Agent, Cross-database queries, CLR).
+## 2. Azure SQL Database: Key Architectures
 
-### 3. Azure SQL Database (Database-as-a-Service)
-- **The modern, cloud-native choice:** Microsoft manages the operating system, SQL engine, backups, replication, and high availability behind the scenes.
-- You don't create or manage a database server; you simply create a database and start running SQL queries!
-- Backed by an industry-leading **99.995% availability SLA**.
+### Purchasing Models:
+1. **vCore-based Model (Recommended):** Provides independent, granular control over compute (number of virtual CPU cores) and storage size.
+   - **General Purpose:** Standard production workloads with budget-friendly SSD storage.
+   - **Business Critical:** Low-latency transactional workloads with in-memory storage and multi-replica availability.
+   - **Hyperscale:** Highly scalable storage up to 100 TB with instant backups and rapid restore.
+2. **DTU-based Model (Legacy):** Bundles CPU, memory, and read/write I/O into a single "Database Transaction Unit" metric.
+
+### Serverless Compute Tier (Budget Saver):
+The **Serverless tier** automatically scales compute resources based on workload demand and **automatically pauses the database during inactive periods**:
+- While paused, you pay strictly for storage, saving up to 75% on compute bills!
+- When a new SQL query arrives, the database wakes up automatically within seconds.
 
 ---
 
-## 3. Purchasing Models: DTU vs. vCore & Serverless
+## 3. Hands-on Lab: Deploying Azure SQL & Running Queries
 
-When creating an Azure SQL Database, Azure offers two pricing models:
-
-### 1. DTU Model (Database Transaction Unit)
-- A simplified, pre-packaged bundle of compute (CPU), memory (RAM), and I/O.
-- Tiers: **Basic** (super cheap, $5/mo, 2 GB storage, best for students), **Standard**, and **Premium**.
-- Simplest for beginners who don't want to calculate exact CPU cores.
-
-### 2. vCore Model (Virtual Core)
-- Lets you independently choose your exact number of CPU cores and storage in Gigabytes.
-- Includes the revolutionary **Serverless Tier**:
-  - Automatically scales compute up and down based on real-time query activity.
-  - **Auto-pauses the database when no queries are running**—billing for compute drops to **$0** while paused!
-  - Wakes up automatically when a new query arrives.
-
----
-
-## 4. Key Security Features in Azure SQL
-
-1. **Firewall Rules:**
-   - By default, Azure SQL blocks all internet traffic.
-   - You must add your client laptop IP address to the firewall rules to connect.
-   - You can toggle *"Allow Azure services and resources to access this server"* to let your Azure VMs, App Services, and Container Apps connect.
-2. **Transparent Data Encryption (TDE):**
-   - Automatically encrypts all data stored on disk and in database backups at rest using AES-256 bit keys.
-3. **Microsoft Entra ID (Azure AD) Authentication:**
-   - Connect using cloud corporate accounts instead of managing database passwords.
-4. **Automated Backups & Point-in-Time Restore:**
-   - Azure takes full backups weekly, differential backups every 12 hours, and transaction log backups every 10 minutes.
-   - You can restore your database to any exact minute in the past 7 to 35 days!
+### Step 1: Create Azure SQL Database in Portal
+1. Open the [Azure Portal](https://portal.azure.com).
+2. Search for **SQL databases** and click **+ Create**.
+3. **Basics Tab:**
+   - **Subscription:** Select your subscription.
+   - **Resource group:** `rg-database-demo`.
+   - **Database name:** `sqldb-enterprise-demo`.
+   - **Server:** Click *Create new*:
+     - Server name: `sqlserver-demo-12345` *(Must be globally unique)*.
+     - Location: `East US`.
+     - Authentication method: **Use SQL authentication**.
+     - Server admin login: `sqladmin`.
+     - Password: `ComplexPassword!2026`.
+     - Click **OK**.
+   - **Compute + storage:** Click *Configure database*:
+     - Service tier: **General Purpose (Serverless)**.
+     - Min vCores: `0.5`, Max vCores: `1`.
+     - Check `[x] Enable auto-pause` -> Delay: `1 hour`.
+     - Click **Apply**.
+4. Click **Review + create** -> **Create**. (Takes ~2 minutes).
 
 ---
 
-## 5. Hands-on Walkthrough: Deploying & Querying Azure SQL
+### Step 2: Configure Server Firewall Rules
+By default, Azure SQL blocks all incoming internet traffic to safeguard your data:
 
-In the video, M Prashant guides us through creating a database and querying it directly from the Azure Portal:
-
-### Step 1: Create Azure SQL Database
-1. In the Azure Portal search bar, type **SQL databases** -> Click **Create**.
-2. **Project Details:**
-   - Resource Group: `rg-database-demo`.
-   - Database name: `StudentDB`.
-3. **Server:** Click *Create new*:
-   - Server name: `student-sql-server-$RANDOM` (globally unique).
-   - Region: `East US`.
-   - Authentication: Select **Use SQL authentication**.
-   - Admin login: `azureadmin`.
-   - Password: Enter a strong password. Click **OK**.
-4. **Compute + Storage:**
-   - Click *Configure database*.
-   - Select **Basic** (5 DTUs, 2 GB storage, ~$5/month) to avoid high charges.
-5. Click **Review + Create**, then click **Create**.
-
-### Step 2: Configure Server Firewall
-1. Once deployed, click **Go to resource**.
-2. In the top toolbar, click **Set server firewall**.
-3. Click **+ Add your client IPv4 address** (adds your current home/office IP).
-4. Set *"Allow Azure services and resources to access this server"* to **Yes**.
+1. Open your new SQL Database and click **Set server firewall** at the top.
+2. **Public network access:** Ensure it is set to **Selected networks**.
+3. **Allow Azure services:** Check `[x] Allow Azure services and resources to access this server` (This enables your Azure VMs and App Services to connect).
+4. **Add Client IP:** Click **+ Add your client IPv4 address** (Adds your laptop's current public IP).
 5. Click **Save**.
 
-### Step 3: Querying the Database in Azure Portal (Query Editor)
-1. On the left menu of `StudentDB`, click **Query editor (preview)**.
-2. Enter your SQL admin login (`azureadmin`) and password -> Click **OK**.
-3. In the query window, run standard SQL statements:
+---
+
+### Step 3: Run Queries via the Portal "Query Editor"
+You can interact with your database directly inside the Azure Portal without installing any software:
+
+1. In the left navigation menu of your SQL Database, click **Query editor (preview)**.
+2. Log in using your credentials:
+   - **Login:** `sqladmin`
+   - **Password:** `ComplexPassword!2026`
+   - Click **OK**.
+3. In the query window, execute standard T-SQL commands:
 
 ```sql
 -- 1. Create a table
-CREATE TABLE Students (
-    StudentID INT PRIMARY KEY,
-    FirstName VARCHAR(50),
-    LastName VARCHAR(50),
-    Course VARCHAR(50)
+CREATE TABLE Customers (
+    CustomerID INT PRIMARY KEY IDENTITY(1,1),
+    FirstName VARCHAR(50) NOT NULL,
+    LastName VARCHAR(50) NOT NULL,
+    Email VARCHAR(100) UNIQUE,
+    CreatedDate DATETIME DEFAULT GETDATE()
 );
 
 -- 2. Insert sample records
-INSERT INTO Students VALUES (101, 'Rahul', 'Sharma', 'Cloud Computing');
-INSERT INTO Students VALUES (102, 'Priya', 'Verma', 'DevOps & Azure');
+INSERT INTO Customers (FirstName, LastName, Email)
+VALUES 
+    ('Abhishek', 'Veeramalla', 'abhishek@example.com'),
+    ('Prashant', 'Kumar', 'prashant@example.com'),
+    ('John', 'Doe', 'john.doe@example.com');
 
 -- 3. Query the data
-SELECT * FROM Students;
+SELECT * FROM Customers;
 ```
 
-Click **Run**. The query results immediately appear in the bottom pane, demonstrating a fully functional, production-ready relational database on Azure!
+4. Click **Run**. The results grid instantly displays your records!
 
 ---
 
-## 6. Summary Checklist
-- [x] Azure SQL Database is a fully managed PaaS relational database with 99.995% uptime SLA.
-- [x] DTU model is simple and cheap for beginners; vCore Serverless autoscales and pauses when idle.
-- [x] Firewall rules restrict access strictly to whitelisted client IPs and Azure internal services.
-- [x] Built-in automatic backups, Transparent Data Encryption (TDE), and Point-in-Time recovery.
-- [x] Query directly from the browser using Azure Portal Query Editor without local software.
+## 4. Connecting from External Tools (SSMS & Code)
+
+### Connection String:
+Navigate to the **Connection strings** tab in the portal to retrieve pre-formatted strings for ADO.NET, JDBC, ODBC, or PHP:
+```
+Server=tcp:sqlserver-demo-12345.database.windows.net,1433;Initial Catalog=sqldb-enterprise-demo;Persist Security Info=False;User ID=sqladmin;Password={your_password};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
+```
+
+---
+
+## 5. Summary Checklist
+- [x] Azure SQL Database is a fully managed PaaS relational engine with built-in 99.99% availability.
+- [x] Serverless compute tier automatically scales down and pauses when idle to eliminate compute costs.
+- [x] Server firewall rules restrict access by client IP and manage Azure-internal network access.
+- [x] Built-in Query Editor allows rapid schema design, querying, and verification directly in the browser.

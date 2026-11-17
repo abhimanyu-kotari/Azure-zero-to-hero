@@ -1,127 +1,148 @@
-# 13 - Azure Table Storage (NoSQL) & Azure Files
+# 13 - Specialized Storage: Azure Table Storage (NoSQL) & Azure Files (SMB/NFS)
 
 > **Video Reference:** [Microsoft AZURE in ONE VIDEO (MPrashant)](https://youtu.be/M1erI5a2wxQ)  
 > **Source Timeframe:** `05:57:26` to `06:22:08`
 
 ---
 
-## Part 1: Azure Table Storage (NoSQL)
+## 1. What is Azure Table Storage (NoSQL)?
 
-### 1. What is NoSQL?
-In traditional relational databases (like MySQL or SQL Server), you must pre-define a rigid table schema with exact column names and datatypes. If Row 1 has 5 columns, every other row must adhere to that schema. Adding new columns requires running complex `ALTER TABLE` migrations.
+**Azure Table Storage** is a low-cost, highly available NoSQL key-value datastore. Unlike traditional relational databases (like MySQL or SQL Server), Table Storage is **schemaless**: each record (called an **entity**) can hold completely different properties (columns) from every other record.
 
-**NoSQL (Not Only SQL)** is a non-relational, **schema-less** database model. Every record (called an **Entity**) can have completely different attributes without breaking the database.
+```
++-------------------------------------------------------------------------+
+|                  AZURE TABLE STORAGE DATA MODEL                         |
++-------------------------------------------------------------------------+
+|                                                                         |
+|  PartitionKey | RowKey    | Timestamp           | Custom Properties     |
+|  -------------+-----------+---------------------+---------------------- |
+|  "CustomerUS" | "001"     | 2026-11-17T10:00:00 | Name="Alice", Age=28  |
+|  "CustomerUS" | "002"     | 2026-11-17T10:01:00 | Name="Bob", City="NY" |
+|  "CustomerEU" | "101"     | 2026-11-17T10:02:00 | Name="Eve", VIP=True  |
+|                                                                         |
+|  * PartitionKey + RowKey together form the unique PRIMARY KEY!          |
++-------------------------------------------------------------------------+
+```
+
+### The Composite Primary Key:
+Every entity in an Azure Table requires three mandatory system properties:
+1. **PartitionKey (String):** Groups related entities together onto the same physical storage node. Queries scoped to a single `PartitionKey` execute with sub-second speed.
+2. **RowKey (String):** The unique identifier for an entity within a given partition.
+3. **Timestamp (DateTime):** Automatically populated by Azure to support optimistic concurrency.
+
+### When to Use Table Storage vs. Azure Cosmos DB:
+- **Choose Table Storage:** When storing terabytes of structured logs, telemetry, IoT sensor snapshots, or simple user profiles where cost must remain extremely low ($0.045 per GB/month).
+- **Choose Azure Cosmos DB:** When you require global multi-region active-active replication, guaranteed single-digit millisecond latency SLAs, or complex SQL/MongoDB/Gremlin APIs.
 
 ---
 
-### 2. What is Azure Table Storage?
-**Azure Table Storage** is a highly scalable, serverless NoSQL key-value datastore included inside your Azure Storage Account.
+## 2. Hands-on Lab: Working with Azure Table Storage
 
-It is designed to store massive amounts of semi-structured data (millions of records) at an **extremely low cost** (fraction of a cent per gigabyte), while delivering single-digit millisecond lookup speeds.
-
-### Anatomy of an Entity (Record) in Table Storage:
-Every row in Azure Table Storage requires three mandatory system properties:
-
-```
-+-----------------------------------------------------------------------------------------+
-| PartitionKey (City) | RowKey (ID) | Timestamp             | Custom Properties...        |
-+---------------------+-------------+-----------------------+-----------------------------+
-| "NewYork"           | "emp_101"   | 2026-11-17T10:00:00Z  | Name="Alice", Role="Dev"    |
-| "NewYork"           | "emp_102"   | 2026-11-17T10:05:00Z  | Name="Bob", Dept="QA", Yrs=3|
-| "London"            | "emp_201"   | 2026-11-17T10:10:00Z  | Name="Charlie", Phone="123" |
-+-----------------------------------------------------------------------------------------+
-```
-
-1. **`PartitionKey` (String):**
-   - Identifies the partition (cluster) where the entity is stored.
-   - Azure uses the `PartitionKey` to automatically distribute tables across thousands of storage nodes as data grows.
-2. **`RowKey` (String):**
-   - The unique identifier of the entity within that specific partition.
-   - Together, the **`PartitionKey + RowKey`** forms the primary key of your data!
-3. **`Timestamp` (DateTime):**
-   - Maintained automatically by Azure to record when the entity was last modified.
-4. **Custom Properties:**
-   - Up to 252 custom key-value pairs per entity (supports strings, integers, booleans, GUIDs).
-   - One entity can have 3 properties, while the next entity can have 20 properties!
-
-### Best Use Cases for Table Storage:
-- Storing IoT sensor telemetry and device status records.
-- Storing user profile preferences and web session data.
-- Maintaining customer contact books and inventory catalogs.
-- High-volume logging where relational database licenses are too expensive.
+### Step 1: Create a Table
+1. In the Azure Portal, open your Storage Account (`mystoragedemo12345`).
+2. Under **Data storage**, click **Tables**.
+3. Click **+ Table** -> Name: `DeviceTelemetry` -> Click **OK**.
 
 ---
 
-## Part 2: Azure File Share (Azure Files)
+### Step 2: Insert Entities (Schemaless Demonstration)
+1. Inside the `DeviceTelemetry` table, click **+ Add entity**:
+   - **PartitionKey:** `Building-A`
+   - **RowKey:** `Sensor-101`
+   - Click **Add property**: Name: `Temperature`, Type: `Double`, Value: `72.5`
+   - Click **Add property**: Name: `Status`, Type: `String`, Value: `Normal`
+   - Click **Insert**.
+2. Click **+ Add entity** again:
+   - **PartitionKey:** `Building-A`
+   - **RowKey:** `Camera-202`
+   - Click **Add property**: Name: `Resolution`, Type: `String`, Value: `4K`
+   - Click **Add property**: Name: `BatteryPercent`, Type: `Int32`, Value: `88`
+   - Click **Insert**.
 
-### 1. What is Azure Files?
-When you have multiple virtual machines (or developers), how do you share files between them as a standard network drive?
-
-**Azure Files** provides fully managed cloud file shares that you can mount as a regular drive letter (`Z:\` on Windows, or `/mnt/share` on Linux) using industry-standard protocols:
-- **SMB 3.0 (Server Message Block):** Used by Windows, Linux, and macOS.
-- **NFS (Network File System):** Used primarily by Linux enterprise workloads.
-
-```
-                    +------------------------------------+
-                    |       AZURE FILE SHARE (SMB)       |
-                    |     (Managed Storage Account)      |
-                    +-----------------+------------------+
-                                      |
-         +----------------------------+----------------------------+
-         |                            |                            |
-         v                            v                            v
-  [ Windows VM ]                [ Linux VM ]                [ On-Premises Laptop ]
-   (Mounted as Z:\)             (Mounted as /mnt/data)      (Mounted via SMB Port 445)
-```
+Notice how Sensor 101 and Camera 202 store completely different fields in the same table without needing schema migrations or altering tables!
 
 ---
 
-### 2. Why Use Azure Files?
-1. **True Shared Storage:** Hundreds of virtual machines or containers can read and write to the same shared directory at the exact same time.
-2. **"Lift-and-Shift" Migrations:** Legacy enterprise applications often rely on reading files from a local network share (`\\fileserver\docs`). You can migrate these apps directly to Azure without changing a single line of code!
-3. **Persistent Volume for Containers:** ACI and AKS can mount an Azure File Share inside a container, ensuring data persists even if the container restarts.
-4. **Azure File Sync:** Replicates your cloud Azure File Share to local on-premises Windows servers, caching hot files locally for instant access while keeping a master backup in the cloud.
+## 3. What is Azure Files (Cloud File Shares)?
+
+**Azure Files** provides fully managed cloud file shares that can be accessed using standard industry protocols:
+- **SMB (Server Message Block - Port 445):** Mountable on Windows, macOS, and Linux laptops or servers.
+- **NFS (Network File System - Port 2049):** High-performance mounting on Linux enterprise servers.
+
+```
++-------------------------------------------------------------------------+
+|                       AZURE FILES CLOUD SHARING                         |
++-------------------------------------------------------------------------+
+|                                                                         |
+|                          +--------------------+                         |
+|                          |  AZURE FILE SHARE  |                         |
+|                          |   (Storage Acct)   |                         |
+|                          +---------+----------+                         |
+|                                    |                                    |
+|               +--------------------+--------------------+               |
+|               | SMB Protocol (Port 445)                 |               |
+|               v                                         v               |
+|       +----------------+                       +----------------+       |
+|       | Windows Server |                       | Linux VM       |       |
+|       | Mounted as Z:\ |                       | Mounted at     |       |
+|       |                |                       | /mnt/clouddata |       |
+|       +----------------+                       +----------------+       |
+|                                                                         |
++-------------------------------------------------------------------------+
+```
+
+### Why Azure Files?
+- **"Lift and Shift" Migration:** Move legacy on-premises applications to the cloud without rewriting their code. If an app reads files from `\\fileserver\shared`, you simply redirect it to Azure Files!
+- **Shared Access:** Dozens of virtual machines can read and write to the exact same file share concurrently.
+- **Persistent Storage for Containers:** Easily mounted into Azure Kubernetes Service (AKS) pods as persistent volumes.
 
 ---
 
-## 3. Hands-on Walkthrough: Creating & Mounting an Azure File Share
+## 4. Hands-on Lab: Creating and Mounting an Azure File Share
 
-In the video, M Prashant demonstrates creating and mounting a file share:
+### Step 1: Create the File Share
+1. In your Storage Account, under **Data storage**, click **File shares**.
+2. Click **+ File share**:
+   - **Name:** `corporate-share`.
+   - **Tier:** **Transaction optimized** (for standard practice) or **Hot**.
+   - Click **Review + create** -> **Create**.
 
-### Step 1: Create a File Share in Azure Storage Account
-1. Open your Storage Account in the Azure Portal.
-2. In the left menu under *Data storage*, click **File shares** -> Click **+ File share**.
-3. Name: `shared-docs`.
-4. Tier: **Transaction optimized** (or Hot).
-5. Click **Create**.
+---
 
-### Step 2: Upload Files
-1. Click into `shared-docs` -> Click **Upload**.
-2. Select a text file or image and upload it.
+### Step 2: Retrieve the Auto-Generated Mount Script
+1. Click on `corporate-share`.
+2. Click the **Connect** button at the top:
+   - Azure generates a ready-to-run connection script for **Windows**, **Linux**, or **macOS**!
 
-### Step 3: Connect to a Linux Virtual Machine
-1. In the file share toolbar, click **Connect**.
-2. Select the **Linux** tab.
-3. Azure automatically generates the exact bash command with the storage account key and mount parameters:
+#### For Windows (PowerShell):
+```powershell
+$connectTestResult = Test-NetConnection -ComputerName "mystoragedemo12345.file.core.windows.net" -Port 445
+if ($connectTestResult.TcpTestSucceeded) {
+    New-PSDrive -Name "Z" -PSProvider "FileSystem" -Root "\\mystoragedemo12345.file.core.windows.net\corporate-share" -Persist -Credential (New-Object System.Management.Automation.PSCredential ("mystoragedemo12345", (ConvertTo-SecureString "YOUR_STORAGE_KEY" -AsPlainText -Force)))
+} else {
+    Write-Error -Message "Unable to reach the Azure storage account via port 445."
+}
+```
 
+#### For Linux (Ubuntu / Debian):
 ```bash
-# 1. Create the mount directory on your Linux VM
-sudo mkdir -p /mnt/azureshared
+# 1. Install CIFS utilities
+sudo apt-get update
+sudo apt-get install -y cifs-utils
 
-# 2. Mount the Azure File Share using CIFS/SMB
-sudo mount -t cifs //azuresimplifiedstorage.file.core.windows.net/shared-docs /mnt/azureshared \
-  -o vers=3.0,username=azuresimplifiedstorage,password=<YOUR_STORAGE_KEY>,dir_mode=0777,file_mode=0777,serverino
+# 2. Create the local mount directory
+sudo mkdir -p /mnt/corporate-share
 
-# 3. Verify the files are visible
-ls -la /mnt/azureshared
+# 3. Mount the Azure File Share using SMB credentials
+sudo mount -t cifs //mystoragedemo12345.file.core.windows.net/corporate-share /mnt/corporate-share -o vers=3.0,username=mystoragedemo12345,password=YOUR_STORAGE_KEY,dir_mode=0777,file_mode=0777,serverino
 ```
 
-Any file created inside `/mnt/azureshared` on your VM is immediately uploaded and synchronized to Microsoft's cloud!
+3. Any file written to `/mnt/corporate-share` on the Linux VM is immediately visible on the Windows `Z:\` drive in real time!
 
 ---
 
-## 4. Summary Checklist
-- [x] Azure Table Storage is a fast, cheap, schemaless NoSQL key-value store.
-- [x] Entities require PartitionKey + RowKey + Timestamp; custom properties can vary per row.
-- [x] Azure Files provides managed SMB/NFS file shares mounted simultaneously across Windows & Linux.
-- [x] Ideal for legacy lift-and-shift app migrations and container persistent storage.
+## 5. Summary Checklist
+- [x] Azure Table Storage is a schemaless NoSQL store using a composite key (`PartitionKey` + `RowKey`).
+- [x] Ideal for storing massive, inexpensive semi-structured datasets like telemetry and logs.
+- [x] Azure Files delivers enterprise cloud file shares over standard SMB and NFS protocols.
+- [x] Allows concurrent multi-server mounting for legacy migrations and shared container storage.

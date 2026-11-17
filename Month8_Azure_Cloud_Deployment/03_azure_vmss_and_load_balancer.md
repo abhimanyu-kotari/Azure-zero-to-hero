@@ -1,159 +1,249 @@
-# 03 - Azure VMSS & Load Balancer
+# 03 - High Availability: Azure VMSS & Load Balancer
 
 > **Video Reference:** [Microsoft AZURE in ONE VIDEO (MPrashant)](https://youtu.be/M1erI5a2wxQ)  
 > **Source Timeframe:** `01:44:39` to `02:29:44`
 
 ---
 
-## 1. Why a Single Virtual Machine is Not Enough
+## 1. The Problem with Single Virtual Machines
 
-In real-world applications (like Amazon, Netflix, or food delivery apps), running your website on a single Virtual Machine is dangerous:
-1. **Single Point of Failure (SPOF):** If that single physical host crashes or undergoes scheduled maintenance, your website goes down completely.
-2. **Traffic Spikes:** If 50,000 customers visit your app during a festival sale, one VM will run out of CPU and RAM and crash.
-3. **No Automatic Recovery:** You would have to wake up at 3:00 AM, log into the Azure Portal, and manually launch a larger server.
+In the previous module, we deployed a web server on a single Azure VM. While that works for small experiments, running production workloads on a single VM presents major risks:
 
-To solve this, modern cloud engineering relies on two services working hand-in-hand:
-- **Azure Virtual Machine Scale Sets (VMSS):** Automatically adds or removes VM copies based on demand.
-- **Azure Load Balancer:** Evenly distributes incoming customer traffic across all those VMs so no single server gets overwhelmed.
+1. **Single Point of Failure (SPOF):** If that physical host hardware fails, or during scheduled maintenance, your website goes down completely.
+2. **Inability to Handle Traffic Spikes:** If 50,000 visitors arrive at once, a single VM's CPU and RAM become saturated, crashing the app.
+3. **No Automatic Healing:** If the operating system crashes at 3:00 AM, nobody is awake to restart it.
+
+To solve this, modern cloud architecture relies on two key technologies:
+- **Azure Load Balancer:** Distributes incoming user traffic evenly across multiple servers.
+- **Azure Virtual Machine Scale Sets (VMSS):** Automatically adds or removes VMs based on traffic demand (Elastic Scaling).
+
+```
++-----------------------------------------------------------------------+
+|                    HIGH AVAILABILITY ARCHITECTURE                     |
++-----------------------------------------------------------------------+
+|                                                                       |
+|                          Internet Users                               |
+|                                |                                      |
+|                                v                                      |
+|                   +-------------------------+                         |
+|                   |   AZURE LOAD BALANCER   |                         |
+|                   |  Frontend Public IP     |                         |
+|                   +------------+------------+                         |
+|                                |                                      |
+|            +-------------------+-------------------+                  |
+|            | (Routes to healthy instances)         |                  |
+|            v                                       v                  |
+|   +-----------------+                     +-----------------+         |
+|   |   VMSS Node 1   |                     |   VMSS Node 2   |         |
+|   | Apache (Port 80)|                     | Apache (Port 80)|         |
+|   +-----------------+                     +-----------------+         |
+|                                                                       |
++-----------------------------------------------------------------------+
+```
 
 ---
 
-## 2. Vertical vs. Horizontal Scaling
+## 2. Scaling Concepts: Vertical vs. Horizontal
 
-When web traffic grows, you have two ways to add more computing power:
+Before setting up scale sets, every cloud engineer must understand the difference between **Scaling Up** and **Scaling Out**:
 
 ```
-        VERTICAL SCALING (SCALE UP)              HORIZONTAL SCALING (SCALE OUT)
-      Make the same server bigger                     Add more identical servers
-
-           +---------------+                     +-------+   +-------+   +-------+
-           |               |                     |  VM1  |   |  VM2  |   |  VM3  |
-           |   Giant VM    |                     +-------+   +-------+   +-------+
-           |  (64 Cores)   |                         ^           ^           ^
-           +---------------+                         +-----------+-----------+
-                   ^                                             |
-           +---------------+                           [ Azure Load Balancer ]
-           |  Original VM  |
-           |   (2 Cores)   |
-           +---------------+
+VERTICAL SCALING (Scale Up)          HORIZONTAL SCALING (Scale Out)
+     +-------------+                     +-----+  +-----+  +-----+
+     |             |                     | VM1 |  | VM2 |  | VM3 |
+     |  Bigger VM  |                     +-----+  +-----+  +-----+
+     |  16 vCPU    |                                 +
+     |  64 GB RAM  |                     Add more identical VMs
+     +-------------+                     behind a Load Balancer!
 ```
 
-| Dimension | Vertical Scaling (Scale Up / Down) | Horizontal Scaling (Scale Out / In) |
+| Metric | Vertical Scaling (Scale Up / Down) | Horizontal Scaling (Scale Out / In) |
 | :--- | :--- | :--- |
-| **Concept** | Upgrading a single VM to a larger size (e.g., from 2 CPU/4 GB RAM to 16 CPU/64 GB RAM). | Adding more identical VM instances behind a load balancer. |
-| **Downtime** | **Requires a reboot** (server downtime during resize). | **Zero downtime** (new VMs join the pool seamlessly). |
-| **Limits** | Limited by the maximum physical server size Azure sells. | Virtually **unlimited** (can scale to 1,000+ VM instances). |
-| **Fault Tolerance** | Zero (if that one big machine crashes, you are offline). | High (if 1 VM dies, the remaining 9 VMs handle traffic). |
-| **Cost** | Expensive large instances running 24/7. | Cost-effective: spin up extra VMs only during rush hours. |
+| **How it works** | Resizing an existing VM to a larger size (e.g., from `B1s` to `D4s`). | Deploying *more* identical VMs side-by-side. |
+| **Downtime** | **Requires a reboot** (Causes downtime while hardware resizes). | **Zero downtime** (Traffic flows to existing servers while new ones spin up). |
+| **Upper Limit** | Limited by the largest physical machine Azure manufactures. | Virtually limitless (Thousands of VMs can run together). |
+| **Fault Tolerance**| Low (Still only one machine; if it dies, everything dies). | **Very High** (If one VM dies, others continue serving traffic). |
 
 ---
 
-## 3. What is Azure Virtual Machine Scale Sets (VMSS)?
+## 3. What is an Azure Load Balancer?
 
-**Azure Virtual Machine Scale Sets (VMSS)** is an Azure compute resource that lets you deploy and manage a group of identical, load-balanced virtual machines.
+An **Azure Load Balancer** operates at Layer 4 of the OSI model (Transport Layer - TCP/UDP). It distributes network traffic across healthy backend virtual machines.
 
-### Key Features of VMSS:
-1. **Identical Instances:** Every VM runs the exact same OS image, packages, code, and configuration.
-2. **Autoscaling Rules:**
-   - **Scale Out Rule:** *If average CPU across all VMs > 75% for 5 minutes, automatically add 2 more VMs.*
-   - **Scale In Rule:** *If average CPU drops below 25%, automatically remove 2 VMs to save money.*
-   - **Schedule-based:** *Scale out to 10 VMs every Monday morning at 9:00 AM, and scale down to 2 VMs on Friday evening.*
-3. **High Availability Built-in:**
-   - **Fault Domains (FD):** Physical server racks with separate power and network switches. VMSS spreads your VMs across different racks so a blown fuse doesn't kill all your servers.
-   - **Update Domains (UD):** Logical groups of VMs. During routine Azure platform patching, Azure reboots only one UD at a time, keeping your application online.
-
----
-
-## 4. What is Azure Load Balancer?
-
-An **Azure Load Balancer** operates at **Layer 4 of the OSI model (Transport Layer - TCP/UDP)**. It acts as the "traffic police officer" standing in front of your servers:
+### Key Components of an Azure Load Balancer:
 
 ```
-                          [ Internet Users ]
-                                  |
-                                  v
-                    [ Azure Public Load Balancer ]
-                      (Single Public IP: Port 80)
-                                  |
-         +------------------------+------------------------+
-         |                        |                        |
-         v                        v                        v
-    [ VMSS - VM 1 ]          [ VMSS - VM 2 ]          [ VMSS - VM 3 ]
-    (Private IP: .4)         (Private IP: .5)         (Private IP: .6)
++--------------------------------------------------------------------------+
+|                     LOAD BALANCER COMPONENT FLOW                         |
++--------------------------------------------------------------------------+
+|  1. FRONTEND IP CONFIGURATION:                                           |
+|     The single public IP or private IP that clients connect to.          |
+|                                                                          |
+|  2. HEALTH PROBE:                                                        |
+|     Constantly pings VMs (e.g., every 5s on Port 80).                    |
+|     Unhealthy VMs are immediately removed from rotation.                 |
+|                                                                          |
+|  3. LOAD BALANCING RULES:                                                |
+|     Defines how traffic is mapped (e.g., Frontend Port 80 -> Backend 80).|
+|                                                                          |
+|  4. BACKEND POOL:                                                        |
+|     The collection of target VMs or VMSS nodes handling the requests.    |
++--------------------------------------------------------------------------+
 ```
 
-### The 4 Core Components of a Load Balancer:
-1. **Frontend IP Configuration:** The single public IP address (or internal private IP) that users connect to.
-2. **Backend Pool:** The list of virtual machines (or VMSS instances) that receive the traffic and run your application code.
-3. **Health Probe:** Continuously tests each VM (e.g., sends an HTTP request to port 80 every 5 seconds):
-   - If VM 2 crashes or stops responding, the health probe marks it "Unhealthy".
-   - The Load Balancer **immediately stops sending traffic to VM 2**, routing users only to healthy VMs (VM 1 and VM 3).
-4. **Load Balancing Rules:** Defines how incoming traffic is routed. For example: *Traffic arriving on Frontend Port 80 (TCP) should be forwarded to Backend Pool instances on Port 80.*
+---
+
+## 4. What is a Virtual Machine Scale Set (VMSS)?
+
+An **Azure Virtual Machine Scale Set (VMSS)** lets you deploy and manage a group of identical, load-balanced VMs. 
+- The number of VM instances can automatically increase or decrease in response to demand or a defined schedule.
+- VMSS provides **High Availability** across Availability Zones.
+- If one instance becomes unhealthy, VMSS automatically terminates it and spins up a fresh replacement.
 
 ---
 
-## 5. Public Load Balancer vs. Internal Load Balancer
+## 5. Hands-on Lab: Deploying Load-Balanced VMSS with Apache
 
-- **Public Load Balancer:**
-  - Has a public internet-facing IP address.
-  - Used for external web traffic (routing internet users to frontend web servers).
-- **Internal (Private) Load Balancer:**
-  - Has a private IP address within your Azure Virtual Network (VNet).
-  - Used for internal tiers (e.g., routing web frontend servers to private backend API servers or databases).
+In this lab from the video, we deploy a Load Balancer and a VMSS where every instance automatically boots with an Apache web server serving a custom webpage.
+
+### Step 1: Create a Resource Group
+1. Open the [Azure Portal](https://portal.azure.com).
+2. Create a new Resource Group named `rg-vmss-demo` in your preferred region (e.g., `East US`).
 
 ---
 
-## 6. Hands-on Walkthrough: Creating a Load-Balanced Web App
+### Step 2: Create the Virtual Machine Scale Set
+1. Search for **Virtual machine scale sets** in the top search bar and click **+ Create**.
+2. **Basics Tab:**
+   - **Resource group:** `rg-vmss-demo`
+   - **Virtual machine scale set name:** `vmss-web-cluster`
+   - **Region:** `East US`
+   - **Availability zone:** Select Zones `1, 2, 3` (for multi-zone redundancy)
+   - **Orchestration mode:** **Uniform** (optimized for large-scale, identical stateless workloads)
+   - **Security type:** `Standard`
+   - **Image:** `Ubuntu Server 22.04 LTS - x64 Gen2`
+   - **Size:** `Standard_B1s` (Cheapest for practice)
+   - **Authentication type:** `Password` or `SSH public key`
+     - Username: `azureuser`
+     - Password: `AzurePassword123!` (or generate SSH key)
 
-In the video, M Prashant demonstrates the complete setup:
+---
 
-### Step 1: Create the Azure Load Balancer
-1. Search for **Load balancers** in the Azure Portal -> Click **Create**.
-2. Resource Group: `rg-vmss-demo`.
-3. Name: `my-web-loadbalancer`.
-4. Region: e.g., *East US*.
-5. Type: **Public**.
-6. SKU: **Standard** (recommended for production and security).
-7. Frontend IP Configuration: Click *Add frontend IP configuration*, select *Public IP*, create a new one named `lb-public-ip`.
-8. Click **Review + Create**.
+### Step 3: Configure Networking & Attach Load Balancer
+1. Go to the **Networking** tab.
+2. **Virtual network:** Create new or select default (`vnet-vmss-demo`).
+3. Under **Load balancing**, select:
+   - **Load balancing options:** `Azure load balancer`
+   - **Select a load balancer:** `Create a load balancer`
+   - **Load balancer name:** `lb-web-frontend`
+   - **Type:** `Public`
+   - **Create a backend pool:** Name it `backend-pool-web`
 
-### Step 2: Configure Health Probe & Load Balancing Rule
-1. Go to your new Load Balancer resource.
+---
+
+### Step 4: Configure Scaling Rules
+1. Go to the **Scaling** tab.
+2. **Initial instance count:** `2` (starts with 2 VMs).
+3. **Scaling policy:** Select **Custom**.
+   - **Minimum number of VMs:** `1`
+   - **Maximum number of VMs:** `5`
+   - **Scale out condition:** Metric = `CPU utilization`, Threshold = `75%`, Duration = `5 mins`, Action = `Increase count by 1`.
+   - **Scale in condition:** Metric = `CPU utilization`, Threshold = `25%`, Duration = `5 mins`, Action = `Decrease count by 1`.
+
+---
+
+### Step 5: Advanced Tab — Inject Startup Script (Custom Data)
+1. Navigate to the **Advanced** tab.
+2. In the **Custom data** text box, paste the automated Apache setup script:
+
+```bash
+#!/bin/bash
+sudo apt update -y
+sudo apt install -y apache2
+sudo systemctl start apache2
+sudo systemctl enable apache2
+
+# Display the unique hostname so we know WHICH VM instance answered our request!
+INSTANCE_ID=$(hostname)
+echo "<html><body style='font-family: Arial; text-align: center; margin-top: 50px;'>" | sudo tee /var/www/html/index.html
+echo "<h1>Welcome to Apache on Azure VMSS!</h1>" | sudo tee -a /var/www/html/index.html
+echo "<p>Served by Instance Hostname: <b>$INSTANCE_ID</b></p>" | sudo tee -a /var/www/html/index.html
+echo "</body></html>" | sudo tee -a /var/www/html/index.html
+```
+
+> **Why `$INSTANCE_ID`?** When you refresh the Load Balancer IP, you will see the hostname toggle between instances, proving the Load Balancer is distributing requests!
+
+---
+
+### Step 6: Review + Create
+1. Click **Review + create** -> **Create**.
+2. Wait 3–4 minutes for the deployment to finish.
+
+---
+
+### Step 7: Configure Load Balancer Inbound Rule & Health Probe
+By default, the Load Balancer needs an explicit rule to forward web traffic to the backend pool:
+
+1. In the Azure Portal, go to your new Load Balancer: `lb-web-frontend`.
 2. Under **Settings**, click **Health probes** -> **+ Add**:
-   - Name: `http-health-probe`
-   - Protocol: `TCP`
-   - Port: `80`
-   - Interval: `5` seconds.
+   - **Name:** `hp-http-80`
+   - **Protocol:** `TCP`
+   - **Port:** `80`
+   - **Interval:** `5` seconds
+   - **Unhealthy threshold:** `2` consecutive failures
+   - Click **Add**.
 3. Under **Settings**, click **Load balancing rules** -> **+ Add**:
-   - Name: `http-lb-rule`
-   - Frontend IP: select `lb-public-ip`.
-   - Protocol: `TCP`, Port: `80`, Backend Port: `80`.
-   - Health Probe: select `http-health-probe`.
+   - **Name:** `rule-http-80`
+   - **Frontend IP address:** Select your Public IP.
+   - **Backend pool:** Select `backend-pool-web`.
+   - **Protocol:** `TCP`
+   - **Port:** `80`
+   - **Backend port:** `80`
+   - **Health probe:** Select `hp-http-80`.
    - Click **Add**.
 
-### Step 3: Deploy VMSS Connected to the Load Balancer
-1. Search for **Virtual machine scale sets** -> Click **Create**.
-2. Name: `my-frontend-vmss`.
-3. Image: `Ubuntu Server 22.04 LTS`.
-4. Size: `Standard_B1s`.
-5. Under **Networking**, choose **Use an Azure load balancer**:
-   - Select `my-web-loadbalancer`.
-   - Select the backend pool.
-6. Under **Scaling**:
-   - Initial instance count: `2`.
-   - Scaling policy: *Autoscale* (Min: 2, Max: 5, Scale out when CPU > 75%).
-7. Under **Advanced**, paste a cloud-init script in **Custom data** to install Nginx automatically on boot.
-8. Click **Review + create**.
+---
 
-### Step 4: Testing Failover
-1. Once deployed, copy the **Frontend Public IP** of the Load Balancer.
-2. Paste it in your web browser. You will see the Nginx welcome page.
-3. If you manually stop VM 1 in the Azure Portal, the Load Balancer detects the failure within 10 seconds and routes 100% of your requests to VM 2 without any downtime or error page!
+## 6. Testing the Load Balancer & High Availability
+
+### Verification 1: Accessing the Web Application
+1. On the Load Balancer **Overview** page, copy the **Public IP address**.
+2. Paste it in your browser: `http://<LOAD_BALANCER_PUBLIC_IP>`.
+3. You will see:
+   ```
+   Welcome to Apache on Azure VMSS!
+   Served by Instance Hostname: vmss-web-cluster_0
+   ```
+4. Open an Incognito window or refresh using `Ctrl + F5`. You will see requests routed to `vmss-web-cluster_1`!
 
 ---
 
-## 7. Summary Checklist
-- [x] Vertical scaling resizes one machine (causes downtime); Horizontal scaling adds identical machines (zero downtime).
-- [x] VMSS automates deploying and autoscaling identical VMs based on CPU or schedules.
-- [x] Azure Load Balancer operates at Layer 4 (TCP/UDP) distributing traffic across a backend pool.
-- [x] Health Probes continuously monitor instances and automatically bypass dead or crashed servers.
+### Verification 2: Simulating Server Failure (Self-Healing Test)
+1. Go to **Virtual machine scale sets** -> `vmss-web-cluster`.
+2. In the left menu, click **Instances**.
+3. Select `vmss-web-cluster_0` and click **Stop (Deallocate)**.
+4. Refresh your browser immediately:
+   - Your website **DOES NOT FAIL**.
+   - The Load Balancer health probe detects node 0 is offline and immediately directs 100% of user traffic to node 1!
+   - When node 0 is powered back on, the health probe passes and resumes routing traffic to it.
+
+---
+
+## 7. Azure Load Balancer: Basic vs. Standard SKU
+
+| Feature | Basic SKU (Legacy) | Standard SKU (Recommended) |
+| :--- | :--- | :--- |
+| **Backend Pool Size** | Up to 300 instances | Up to 1,000 instances |
+| **Availability Zones** | Not supported | **Zone-redundant & Zonal supported** |
+| **Security by Default** | Open by default (Insecure) | **Closed by default** (Requires explicit NSG rules) |
+| **Health Probes** | TCP, HTTP | TCP, HTTP, **HTTPS** |
+| **SLA** | None | **99.99% uptime guarantee** |
+
+---
+
+## 8. Summary Checklist
+- [x] Single VMs are vulnerable to outages; use VMSS and Load Balancers for production.
+- [x] Horizontal scaling (adding more instances) provides zero downtime and fault tolerance.
+- [x] Load Balancers distribute traffic via Frontend IPs, Backend Pools, and Health Probes.
+- [x] Health Probes continuously test backend server health and pull failed nodes from rotation.
+- [x] VMSS auto-scales instances up and down dynamically using metric thresholds like CPU usage.
