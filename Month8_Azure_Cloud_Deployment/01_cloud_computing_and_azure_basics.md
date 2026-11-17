@@ -1,4 +1,4 @@
-# 01 - Cloud Computing & Azure Basics
+<img width="855" height="380" alt="image" src="https://github.com/user-attachments/assets/8a12ce39-c3cb-45c0-ba63-c118698b1d0d" /># 01 - Cloud Computing & Azure Basics
 
 > **Video Reference:** [Microsoft AZURE in ONE VIDEO (MPrashant)](https://youtu.be/M1erI5a2wxQ)  
 > **Source Timeframe:** `00:04:28` to `00:51:43`
@@ -113,6 +113,9 @@ Cloud services are categorized into three main models depending on how much work
 
 ---
 
+&nbsp;
+<img width="855" height="380" alt="image" src="https://github.com/user-attachments/assets/0e625106-2940-4884-9b23-2fc5d60ffa92" />
+&nbsp;
 ## 4. Introduction to Microsoft Azure
 
 **Microsoft Azure** is Microsoft's public cloud computing platform. It is one of the top two largest cloud providers in the world (alongside AWS), offering hundreds of services across compute, networking, storage, AI, and security.
