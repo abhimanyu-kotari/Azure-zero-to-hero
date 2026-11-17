@@ -456,7 +456,205 @@ Azure allows administrators to execute bash or PowerShell scripts on a running V
 
 ---
 
-## 9. Essential Linux Commands Used in the VM Shell
+## 9. Comprehensive Port & Connectivity Testing Lab (Commands Used After Connecting)
+
+> [!IMPORTANT]
+> In the masterclass video, right after connecting to the VM via Azure Cloud Shell, M Prashant demonstrates a complete sequence of diagnostic commands to verify:
+> 1. Is the web server process running?
+> 2. Is port 80 actually listening on all network interfaces?
+> 3. Does the server respond to internal HTTP loopback requests?
+> 4. Can an external client (like Azure Cloud Shell or a browser) reach port 80 across the Azure Network Security Group?
+> 5. How can you observe live incoming visitor traffic in the access logs?
+
+Follow this exact step-by-step verification lab:
+
+```
++-----------------------------------------------------------------------------------+
+|                        END-TO-END CONNECTIVITY VERIFICATION FLOW                  |
++-----------------------------------------------------------------------------------+
+|                                                                                   |
+|  STEP 1: Check Internal Process        --->  sudo systemctl status apache2        |
+|  STEP 2: Check Listening Ports (80)    --->  sudo netstat -tulnp | grep :80       |
+|  STEP 3: Test Internal Loopback        --->  curl -I http://localhost             |
+|  STEP 4: Test External Reachability    --->  nc -zv <PUBLIC_IP> 80 (from outside) |
+|  STEP 5: Test External HTTP Response   --->  curl -I http://<PUBLIC_IP>           |
+|  STEP 6: Observe Real-Time Access Logs --->  sudo tail -f /var/log/apache2/access.log
+|                                                                                   |
++-----------------------------------------------------------------------------------+
+```
+
+---
+
+### Step 1: Verify the Web Server Process Status
+The first step after logging in via SSH is checking if systemd successfully started the web server daemon:
+
+```bash
+sudo systemctl status apache2
+```
+
+**Expected Healthy Terminal Output:**
+```text
+● apache2.service - The Apache HTTP Server
+     Loaded: loaded (/lib/systemd/system/apache2.service; enabled; vendor preset: enabled)
+     Active: active (running) since Sun 2026-11-17 10:15:22 UTC; 2min 14s ago
+       Docs: https://httpd.apache.org/docs/2.4/
+   Main PID: 1842 (apache2)
+      Tasks: 55 (limit: 1114)
+     Memory: 5.1M
+        CPU: 48ms
+     CGroup: /system.slice/apache2.service
+             ├─1842 /usr/sbin/apache2 -k start
+             ├─1844 /usr/sbin/apache2 -k start
+             └─1845 /usr/sbin/apache2 -k start
+```
+- Look for **`Active: active (running)`** highlighted in green.
+- If it shows `inactive (dead)` or `failed`, start it using:
+  ```bash
+  sudo systemctl start apache2
+  ```
+
+---
+
+### Step 2: Check if Port 80 is Actively Listening (`netstat` & `ss`)
+A service can be running, but is it actually bound to network port `80`?
+
+#### Option A: Using `netstat`
+```bash
+sudo netstat -tulnp | grep :80
+```
+**Expected Output:**
+```text
+tcp   0   0 0.0.0.0:80   0.0.0.0:*   LISTEN   1842/apache2
+```
+
+#### Understanding the `netstat -tulnp` Flags:
+| Flag | Meaning | What it tells you |
+| :---: | :--- | :--- |
+| `-t` | **TCP** | Displays TCP socket connections. |
+| `-u` | **UDP** | Displays UDP socket connections. |
+| `-l` | **Listening** | Filters exclusively for ports actively waiting for incoming connections. |
+| `-n` | **Numeric** | Shows numerical port `80` instead of resolving the service name `http`. |
+| `-p` | **Program/PID** | Reveals the exact Process ID (e.g., `1842`) and executable name (`apache2`). |
+| `0.0.0.0:80` | **All IPv4 Interfaces** | The web server is listening on every NIC and IP address attached to the VM! |
+
+#### Option B: Using Modern `ss` (Socket Statistics)
+On modern Ubuntu systems where `net-tools` is not installed by default, use `ss`:
+```bash
+sudo ss -tulpn | grep :80
+```
+**Expected Output:**
+```text
+tcp   LISTEN   0   511   0.0.0.0:80   0.0.0.0:*   users:(("apache2",pid=1845,fd=4),("apache2",pid=1844,fd=4),("apache2",pid=1842,fd=4))
+```
+
+#### Option C: Using `lsof` (List Open Files)
+```bash
+sudo lsof -i :80
+```
+**Expected Output:**
+```text
+COMMAND   PID     USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+apache2  1842     root    4u  IPv4  24891      0t0  TCP *:http (LISTEN)
+apache2  1844 www-data    4u  IPv4  24891      0t0  TCP *:http (LISTEN)
+apache2  1845 www-data    4u  IPv4  24891      0t0  TCP *:http (LISTEN)
+```
+
+---
+
+### Step 3: Test Local HTTP Response from INSIDE the VM (`curl` Loopback)
+Before testing from the outside internet, confirm that the local operating system can talk to Apache over the loopback interface (`127.0.0.1` / `localhost`):
+
+```bash
+# 1. Fetch the raw HTML content
+curl http://localhost
+```
+**Expected Output:**
+```html
+<html><h1>Welcome to Apache Web Server on Azure VM!</h1></html>
+```
+
+```bash
+# 2. Inspect the HTTP Response Headers (The -I flag sends a HEAD request)
+curl -I http://localhost
+```
+**Expected Output:**
+```text
+HTTP/1.1 200 OK
+Date: Sun, 17 Nov 2026 10:18:04 GMT
+Server: Apache/2.4.52 (Ubuntu)
+Last-Modified: Sun, 17 Nov 2026 10:14:50 GMT
+ETag: "40-62720d43a6ec0"
+Accept-Ranges: bytes
+Content-Length: 64
+Content-Type: text/html
+```
+- **`HTTP/1.1 200 OK`**: Proves the web server is operating flawlessly!
+
+---
+
+### Step 4: Test Port 80 Reachability from OUTSIDE the VM (`nc` Netcat)
+
+Now exit your SSH session (or open a **second tab in Azure Cloud Shell** or your local computer terminal):
+
+```bash
+# Testing from your local computer terminal or Azure Cloud Shell (OUTSIDE the VM):
+nc -zv <YOUR_VM_PUBLIC_IP> 80
+```
+*(Example: `nc -zv 20.120.45.67 80`)*
+
+#### Understanding the Result:
+- **If Port 80 IS OPEN in Azure NSG:**
+  ```text
+  Connection to 20.120.45.67 80 port [tcp/http] succeeded!
+  ```
+  *(Traffic successfully traversed the Azure virtual datacenter firewall!)*
+
+- **If Port 80 IS BLOCKED in Azure NSG:**
+  ```text
+  nc: connect to 20.120.45.67 port 80 (tcp) failed: Connection timed out
+  ```
+  *(The Azure Network Security Group dropped the packets before they reached your VM!)*
+
+---
+
+### Step 5: Test External HTTP Request (`curl` from Outside)
+
+From your local machine or Azure Cloud Shell:
+```bash
+curl -I http://<YOUR_VM_PUBLIC_IP>
+```
+**Expected Output:**
+```text
+HTTP/1.1 200 OK
+Date: Sun, 17 Nov 2026 10:20:15 GMT
+Server: Apache/2.4.52 (Ubuntu)
+Content-Type: text/html
+```
+
+---
+
+### Step 6: Watch Live Incoming Visitor Traffic (The Access Log Stream)
+
+In the video, M Prashant demonstrates how to visually prove that incoming web browser traffic is reaching the server:
+
+1. In your VM SSH terminal, run `tail -f` to lock onto the Apache access log file:
+   ```bash
+   sudo tail -f /var/log/apache2/access.log
+   ```
+
+2. Now open your web browser or run `curl http://<YOUR_VM_PUBLIC_IP>` from your laptop.
+3. Look at your VM terminal in real time:
+   ```text
+   49.37.152.88 - - [17/Nov/2026:10:21:42 +0000] "GET / HTTP/1.1" 200 482 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+   ```
+   - **`49.37.152.88`**: Your laptop's real public IP address.
+   - **`"GET / HTTP/1.1"`**: The browser requesting the root index page.
+   - **`200`**: HTTP success status code.
+   - Press `Ctrl + C` to stop watching the log.
+
+---
+
+## 10. Essential Linux Commands Used in the VM Shell
 
 Once connected to your virtual machine shell, here is the complete, categorized reference of the essential Linux commands demonstrated in the video:
 
@@ -596,7 +794,7 @@ echo "<html><h1>Welcome to Apache Web Server on Azure VM!</h1></html>" | sudo te
 
 ---
 
-## 10. Manual Web Server Installation (Alternative Lab)
+## 11. Manual Web Server Installation (Alternative Lab)
 
 If you deployed the VM without the **Custom Data** script, you can install and configure web servers manually after logging into the shell:
 
@@ -636,7 +834,7 @@ echo "<h1>Welcome to Nginx on Azure VM!</h1>" | sudo tee /var/www/html/index.htm
 
 ---
 
-## 11. Testing Your Website in a Web Browser
+## 12. Testing Your Website in a Web Browser
 
 1. Go to the Azure Portal -> your VM overview page -> copy the **Public IP address**.
 2. Open any web browser (Chrome, Edge, Firefox).
@@ -649,7 +847,7 @@ echo "<h1>Welcome to Nginx on Azure VM!</h1>" | sudo tee /var/www/html/index.htm
 
 ---
 
-## 12. Troubleshooting: Network Security Groups (NSGs)
+## 13. Troubleshooting: Network Security Groups (NSGs)
 
 What if you paste the IP address into your browser and the page spins endlessly with `Site can't be reached`?
 
@@ -704,7 +902,7 @@ Incoming Internet Traffic: Port 80 (HTTP)
 
 ---
 
-## 13. Making Public IPs Static & Creating a DNS Name
+## 14. Making Public IPs Static & Creating a DNS Name
 
 By default, Azure Public IPs are **Dynamic**: if you stop and deallocate your VM, the Public IP is released back to Azure's global pool. When you start it back up, it receives a *different* IP address!
 
@@ -721,7 +919,7 @@ By default, Azure Public IPs are **Dynamic**: if you stop and deallocate your VM
 
 ---
 
-## 14. Attaching, Partitioning & Mounting Data Disks in Linux
+## 15. Attaching, Partitioning & Mounting Data Disks in Linux
 
 In production, you never store application databases on the OS disk. You attach a dedicated **Data Disk**.
 
@@ -772,7 +970,7 @@ In production, you never store application databases on the OS disk. You attach 
 
 ---
 
-## 15. Virtual Machine Lifecycle & Cost Management
+## 16. Virtual Machine Lifecycle & Cost Management
 
 Understanding VM states is essential to prevent surprise cloud bills:
 
@@ -790,7 +988,7 @@ Understanding VM states is essential to prevent surprise cloud bills:
 
 ---
 
-## 16. Essential Azure CLI Commands for VMs
+## 17. Essential Azure CLI Commands for VMs
 
 Manage your virtual machines directly from the command line or terminal:
 
@@ -840,7 +1038,7 @@ az vm delete --resource-group rg-compute-demo --name vm-web-demo --yes
 
 ---
 
-## 17. Module Summary & Student Checklist
+## 18. Module Summary & Student Checklist
 - [x] Azure VMs provide Infrastructure as a Service (IaaS) with full root OS control.
 - [x] B-Series (Burstable) uses CPU credits and is ideal for budget-friendly learning.
 - [x] Availability Zones deliver 99.99% SLA across separate physical datacenters.
