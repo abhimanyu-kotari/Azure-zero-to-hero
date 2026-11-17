@@ -1,4 +1,4 @@
-# 06 - Azure Blob Storage
+# 11 - Azure Blob Storage
 
 > **Video Reference:** [Microsoft AZURE in ONE VIDEO (MPrashant)](https://youtu.be/M1erI5a2wxQ)  
 > **Source Timeframe:** `04:43:40` to `05:25:07`

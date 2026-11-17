@@ -1,4 +1,4 @@
-# 07 - Identity and Access Management (IAM) & RBAC
+# 12 - Identity and Access Management (IAM) & RBAC
 
 > **Video Reference:** [Microsoft AZURE in ONE VIDEO (MPrashant)](https://youtu.be/M1erI5a2wxQ)  
 > **Source Timeframe:** `05:25:07` to `05:57:26`
