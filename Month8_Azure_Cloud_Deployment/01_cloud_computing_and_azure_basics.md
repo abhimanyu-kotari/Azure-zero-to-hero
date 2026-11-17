@@ -9,15 +9,18 @@
 
 <img width="905" height="431" alt="image" src="https://github.com/user-attachments/assets/c538fc3e-ecc5-4383-b296-ee08743f8fd8" />
 
-
 Before cloud computing existed, companies had to buy physical computers (called physical servers) for every single application they wanted to run. If a company needed a web server, a database server, and an email server, they had to buy three separate physical machines. Most of the time, these machines used only 5% to 10% of their total power, leaving 90% of the hardware wasted!
 
 **Virtualization** is the technology that solved this problem.
-
+ 
 ### How Does Virtualization Work?
 Virtualization lets you divide a single physical computer into multiple independent "virtual computers." Each virtual computer is called a **Virtual Machine (VM)**. Each VM thinks it is a real computer with its own CPU, memory, hard drive, and Operating System (like Windows or Linux).
 
 ### The Hypervisor: The Brain of Virtualization
+
+<img width="843" height="402" alt="image" src="https://github.com/user-attachments/assets/df15846f-d9fc-449f-bc6f-3f2614f3b311" />
+
+
 The secret behind virtualization is a piece of software called a **Hypervisor** (also known as a Virtual Machine Monitor). 
 
 The hypervisor sits between the physical hardware and the virtual machines. It manages the physical hardware and shares it fairly among all the virtual machines.
