@@ -1,15 +1,16 @@
 # 02 - Compute: Azure Virtual Machines (VMs) Masterclass
 
 > **Video Reference:** [Microsoft AZURE in ONE VIDEO (MPrashant)](https://youtu.be/M1erI5a2wxQ)  
-> **Source Timeframe:** `00:51:43` to `01:44:39` (Full 53-Minute Deep Dive)
+> **Source Timeframe:** `00:51:43` to `01:44:39` (Full 53-Minute Step-by-Step Practical Walkthrough)
 
 ---
 
-## 1. What is Azure Compute?
+## 1. What is Compute? (The Real-World Analogy)
 
-In cloud computing, **Compute** refers to the raw physical processing power—CPU cores, Random Access Memory (RAM), storage disks, and networking controllers—required to run your software, execute algorithms, serve APIs, and host websites.
+In the video, M Prashant starts by breaking down the word **Compute** using an everyday example:
 
-Microsoft Azure categorizes compute services along a spectrum from maximum administrative control to maximum automation:
+> *"When you go to a computer shop to buy a laptop for college or office work, what do you look for? You ask: How many CPU cores does it have? How much RAM does it have (8 GB or 16 GB)? What kind of hard drive is inside (SSD or HDD)? And what Operating System does it run (Windows, macOS, or Linux)?*  
+> *In Cloud Computing, **Compute** is the exact same thing! But instead of going to a physical store and spending thousands of dollars to buy a machine that sits under your desk, you rent that exact computing power from Microsoft's enterprise data center on-demand, paying only for the seconds you use it."*
 
 ```
 +---------------------------------------------------------------------------------------------------+
@@ -23,13 +24,17 @@ Microsoft Azure categorizes compute services along a spectrum from maximum admin
 +---------------------------------------------------------------------------------------------------+
 ```
 
-The fundamental compute building block of Microsoft Azure is the **Azure Virtual Machine (VM)**.
+### Why Choose an Azure Virtual Machine (IaaS)?
+When you deploy an Azure VM, Microsoft handles the physical computer hardware, the building cooling, electrical generators, and the hypervisor. In return, Microsoft hands you the **root/administrator keys to the operating system**. 
+- You have 100% full freedom to install any software (Python, Node.js, Java, Apache, Nginx, Docker, custom scripts).
+- You configure file systems, open network ports, and customize security settings.
+- You are also responsible for keeping the operating system updated and patched.
 
 ---
 
-## 2. Anatomy & Architecture of an Azure Virtual Machine
+## 2. Anatomy of an Azure VM: What Gets Created Behind the Scenes?
 
-An **Azure Virtual Machine** is an on-demand, scalable computing instance running inside Microsoft's enterprise datacenters. When you create a VM, Azure does not simply create an isolated software box; it orchestrates and links several independent Azure cloud resources together:
+When you click "Create Virtual Machine" in Azure, Azure does not simply spin up a single isolated box. It orchestrates and connects **multiple independent cloud resources** together:
 
 ```
 +---------------------------------------------------------------------------------------+
@@ -73,9 +78,9 @@ An **Azure Virtual Machine** is an on-demand, scalable computing instance runnin
 
 ---
 
-## 3. Azure VM Sizing Families & Hardware Series
+## 3. Understanding Azure VM Sizing & The "Burstable" B-Series
 
-Azure names its virtual machine sizes using lettered families. Choosing the wrong family will either starve your application of resources or waste thousands of dollars.
+When you look at the VM sizing catalog in the Azure Portal, you will see letters like **B, D, E, F, L, N, M**. M Prashant explains the logic behind these letter codes:
 
 ```
        B-Series             D-Series              E-Series              F-Series
@@ -84,28 +89,28 @@ Azure names its virtual machine sizes using lettered families. Choosing the wron
       Dev / Test          Web & APIs             DBs & Caches           Rendering
 ```
 
-| Series | Category | vCPU : RAM Ratio | Best Real-World Use Cases |
+| Series | Family | Ratio (CPU : RAM) | What it is designed for |
 | :--- | :--- | :--- | :--- |
-| **B-Series** | **Burstable (Economical)** | 1:1 to 1:4 | **Development, testing, student learning, personal websites, build agents**. Uses CPU credits. |
-| **D-Series** | **General Purpose** | 1:4 (Balanced) | Production web servers, e-commerce APIs, small-to-medium databases, enterprise apps. |
-| **E-Series** | **Memory Optimized** | 1:8 (High RAM) | Relational database engines (SQL Server, PostgreSQL), in-memory caches (Redis), SAP HANA, heavy analytics. |
-| **F-Series** | **Compute Optimized** | 1:2 (High CPU) | High-volume batch processing, data analytics algorithms, video encoding, gaming server hosting. |
-| **L-Series** | **Storage Optimized** | High NVMe I/O | NoSQL databases (Cassandra, MongoDB), data warehousing requiring extreme local read/write IOPS. |
-| **N-Series** | **GPU Accelerated** | NVIDIA GPUs | Machine learning training, deep neural networks, AI inference, 3D CAD rendering, visual effects. |
-| **M-Series** | **Extreme Memory** | Up to 12 TB RAM | Massive enterprise in-memory databases and mission-critical ERPs. |
-
-### Deep Dive: How the B-Series (Burstable) Works
-The **B-Series** (e.g., `Standard_B1s`, `Standard_B2s`) is what M Prashant uses throughout the video:
-- **Baseline Performance:** A `B1s` instance has a baseline CPU performance of 10% of a vCPU.
-- **Earning Credits:** While your VM is idle (under 10% CPU), it banks **CPU credits**.
-- **Bursting:** When users hit your website or you run `apt update`, the VM consumes its banked credits to burst up to 100% of the vCPU at full speed!
-- **Ideal For:** Student practice and low-traffic workloads where the server is idle 90% of the day.
+| **B-Series** | **Burstable (Economical)** | 1:1 to 1:4 | **Development, testing, student learning, personal blogs**. Saves credits when idle! |
+| **D-Series** | **General Purpose** | 1:4 (Balanced) | Production web servers, e-commerce APIs, small-to-medium relational databases. |
+| **E-Series** | **Memory Optimized** | 1:8 (High RAM) | In-memory caches (Redis), large databases (SQL Server, PostgreSQL), heavy analytics. |
+| **F-Series** | **Compute Optimized** | 1:2 (High CPU) | Batch processing algorithms, mathematical modeling, video encoding, game backends. |
+| **N-Series** | **GPU Accelerated** | High GPU | Artificial intelligence, deep learning model training, 3D CAD modeling, video rendering. |
 
 ---
 
-## 4. Availability Options: SLA, Zones, and Sets
+### How Does the B-Series (Burstable) Actually Work? (The Piggy Bank Concept)
+M Prashant explains why we choose **`Standard_B1s`** (1 vCPU, 1 GiB RAM) for our labs:
 
-Before clicking create, Azure asks how your VM should be protected against datacenter failures:
+> *"Think of the B-Series like a piggy bank. A `B1s` instance has a baseline CPU performance of 10%. When your server is sitting idle during the night or when you are not actively testing it, Azure does not waste that idle time—it gives your VM **CPU Credits** that get stored inside your credit bank.*  
+> *When your users suddenly hit the website, or when you run `apt update` to install Apache, your VM breaks open the piggy bank and bursts up to 100% of the vCPU at maximum performance! Once the spike is over, it drops back to baseline and starts banking credits again.*  
+> *This is why B-series is so cheap—around \$7 to \$10 per month or fractions of a cent per hour—making it the ideal choice for students and developers."*
+
+---
+
+## 4. Availability Options: Datacenter Redundancy Explained
+
+During VM setup, Azure asks: **"Availability options - How should we protect this VM against hardware failure?"**
 
 ```
 +-----------------------------------------------------------------------------------+
@@ -118,50 +123,74 @@ Before clicking create, Azure asks how your VM should be protected against datac
 +-----------------------------------------------------------------------------------+
 ```
 
-### 1. Availability Zones (AZs)
-- Physically separated datacenter buildings within the same Azure region.
-- Each zone possesses **independent power, cooling, and fiber networking**.
-- Choosing **Availability Zone 1, 2, or 3** guarantees that if one datacenter suffers a catastrophic flood or power failure, your VMs in other zones remain operational.
-- Delivers an industry-leading **99.99% uptime SLA**.
+### 1. No Infrastructure Redundancy Required
+- Used for learning, testing, and dev environments.
+- If the physical server rack hosting your VM in the Azure datacenter experiences hardware failure, Microsoft's hypervisor will automatically migrate and reboot your VM on a healthy server, but you will experience a few minutes of reboot downtime.
 
-### 2. Availability Sets
-Used when an Azure region does not support Availability Zones:
-- **Fault Domains (FD):** Represents physical server racks sharing a single power supply unit and network switch. Azure distributes your VMs across 2 or 3 Fault Domains so a tripped circuit breaker only affects one rack.
-- **Update Domains (UD):** Logical groups of underlying hardware that can be rebooted concurrently during platform OS maintenance. Azure splits VMs across up to 20 Update Domains to guarantee zero downtime during scheduled Microsoft patching.
-- Delivers a **99.95% uptime SLA**.
+### 2. Availability Zones (Zone 1, Zone 2, Zone 3)
+- An **Availability Zone** is a physically separated datacenter building located within the same Azure geographic region.
+- Each zone has its **own independent power generator, cooling systems, and dedicated fiber-optic networking**.
+- If a catastrophic flood, power grid blackout, or fire occurs in Zone 1, your applications running in Zone 2 and Zone 3 continue running without disruption.
+- Backed by an industry-leading **99.99% uptime SLA**.
 
----
-
-## 5. Security Types: Standard vs. Trusted Launch vs. Confidential
-
-| Security Type | Architecture | Protection Provided |
-| :--- | :--- | :--- |
-| **Standard** | Standard virtualization. | Baseline hypervisor isolation. |
-| **Trusted Launch** | **Secure Boot + Virtual TPM (vTPM)**. | Prevents kernel-level rootkits, bootkits, and unauthorized firmware tampering. (Recommended default in 2026). |
-| **Confidential VM** | **Hardware memory encryption (AMD SEV-SNP / Intel TDX)**. | Encrypts VM RAM in hardware. Even Microsoft datacenter engineers and hypervisor admins cannot read memory contents! |
+### 3. Availability Sets (Racks & Maintenance)
+Used in smaller Azure regions that do not have multiple physical Availability Zone buildings:
+- **Fault Domains (FD):** Represents physical server racks inside the datacenter sharing a common power supply and network switch. Azure spreads your VMs across 2 or 3 Fault Domains so that a blown power supply only affects one rack.
+- **Update Domains (UD):** Logical groups of servers that can be rebooted at the same time during Microsoft platform updates. Spreading VMs across up to 20 Update Domains ensures at least one server remains online while Microsoft applies host OS patches.
+- Backed by a **99.95% uptime SLA**.
 
 ---
 
-## 6. OS Images & Generation 1 vs. Generation 2
+## 5. Security Types & Generation 1 vs. Generation 2
 
-When selecting an operating system image (Ubuntu, Red Hat, Windows Server):
-- **Generation 1 (Legacy):** Uses legacy BIOS booting, MBR partitions, and emulated IDE controllers. Limited to 2 TB OS disks.
-- **Generation 2 (Modern Standard):** Uses **UEFI firmware**, GPT partition tables, PCIe-based virtual hardware, and supports OS disks greater than 2 TB, faster boot times, and Trusted Launch.
+### Security Types:
+- **Standard:** Traditional hypervisor isolation.
+- **Trusted Launch (Recommended Modern Standard):** Combines **Secure Boot** and a **Virtual Trusted Platform Module (vTPM)**. It verifies that the bootloader and Linux kernel have not been modified by malicious rootkits or boot-level malware before the OS boots.
+- **Confidential VM:** Encrypts memory (RAM) directly inside the physical CPU hardware using AMD SEV-SNP or Intel TDX. Even Microsoft datacenter engineers or hypervisor admins cannot dump memory to inspect data!
+
+### Generation 1 vs. Generation 2 Images:
+- **Generation 1 (Legacy):** Uses legacy BIOS boot architecture, MBR partition tables, and emulated IDE controllers. Limited to OS disks under 2 TB.
+- **Generation 2 (Modern Standard):** Uses **UEFI firmware**, GPT partition tables, PCIe-based virtual hardware, boots faster, and supports OS disks larger than 2 TB. Always choose Gen 2 for new Linux deployments.
 
 ---
 
-## 7. Step-by-Step Portal Walkthrough: Creating a Linux VM
+## 6. Authentication: SSH Public Key vs. Password
 
-Follow this exact field-by-field tutorial to deploy your first cloud server:
+When creating a Linux VM, Azure asks how you want to log in:
 
-### Step 1: Open Virtual Machine Creation
+```
++-----------------------------------------------------------------------+
+|                       HOW SSH AUTHENTICATION WORKS                    |
++-----------------------------------------------------------------------+
+|  Your Laptop (Client)                     Azure VM (Cloud Server)     |
+|                                                                       |
+|  [ vm-web-demo_key.pem ]                 [ ~/.ssh/authorized_keys ]   |
+|   (Private Key - SECRET)                  (Public Key - Stored on VM) |
+|            |                                           |              |
+|            +==== Encrypted Challenge Handshake =======>+              |
+|                                                                       |
+|  If math matches -> Access Granted as 'azureuser'!                    |
++-----------------------------------------------------------------------+
+```
+
+### Why M Prashant Strongly Advises Against Passwords:
+> *"If you select Password and set a password like `Welcome@123`, automated hacking bots scanning the internet will try thousands of dictionary passwords against your IP address every minute until they break in.*  
+> *When you select **SSH public key**, Azure generates an RSA 2048-bit or 4096-bit cryptographic mathematical key pair. The **Public Key** stays stored on the server inside `~/.ssh/authorized_keys`. The **Private Key (`.pem` file)** is downloaded to your laptop. It is mathematically impossible for a hacker to guess or brute-force this key!"*
+
+---
+
+## 7. Step-by-Step Portal Walkthrough: Creating Your First Linux VM
+
+Follow this click-by-click guide through the Azure Portal:
+
+### Step 1: Open the Virtual Machines Hub
 1. Sign in to the [Azure Portal](https://portal.azure.com).
-2. In the top search bar, type `Virtual machines` and click **Virtual machines**.
+2. In the top search bar, type `Virtual machines` and click on **Virtual machines**.
 3. Click **+ Create** -> **Azure virtual machine**.
 
 ---
 
-### Step 2: Tab 1 — "Basics" Configuration
+### Step 2: Configure the "Basics" Tab
 
 ```
 +-----------------------------------------------------------------------------------+
@@ -182,7 +211,7 @@ Follow this exact field-by-field tutorial to deploy your first cloud server:
 |   Size:                  [ Standard_B1s (1 vCPU, 1 GiB memory) ]                  |
 |                                                                                   |
 | Administrator Account:                                                            |
-|   Authentication Type:   [ SSH public key ]  <-- Always use for Linux!            |
+|   Authentication Type:   [ SSH public key ]                                       |
 |   Username:              [ azureuser ]                                            |
 |   SSH Public Key Source: [ Generate new key pair ]                                |
 |   Key Pair Name:         [ vm-web-demo_key ]                                      |
@@ -193,82 +222,54 @@ Follow this exact field-by-field tutorial to deploy your first cloud server:
 +-----------------------------------------------------------------------------------+
 ```
 
-> [!IMPORTANT]
-> **Why SSH Keys over Passwords?**  
-> Public-facing cloud servers that accept passwords are bombarded with automated dictionary attacks. An RSA 2048/4096-bit cryptographic key pair is virtually impossible to brute-force.
+- **Subscription:** Select your active subscription (e.g., Free Trial or Pay-As-You-Go).
+- **Resource Group:** Click *Create new* and enter `rg-compute-demo`. (A Resource Group is a logical container holding all related resources so you can delete everything in one click later).
+- **Virtual Machine Name:** `vm-web-demo`.
+- **Region:** Choose a region close to you geographically (e.g., `East US` or `Central India`).
+- **Image:** Choose **Ubuntu Server 22.04 LTS - x64 Gen2**. ("LTS" stands for *Long Term Support*, meaning Canonical and Microsoft provide security patches for 5 years).
+- **Size:** Click *See all sizes* -> filter by B-Series -> choose **`Standard_B1s`** (1 vCPU, 1 GiB RAM).
+- **Authentication Type:** Select **SSH public key**.
+  - Username: `azureuser`
+  - SSH public key source: **Generate new key pair**
+  - Key pair name: `vm-web-demo_key`
+- **Public Inbound Ports:** Select **Allow selected ports**:
+  - Check **SSH (22)**: Allows administrative terminal access.
+  - Check **HTTP (80)**: Allows users to visit our website in a web browser.
 
 ---
 
-### Step 3: Tab 2 — "Disks" Configuration
-
-```
-+-----------------------------------------------------------------------------------+
-| DISKS TAB CONFIGURATION                                                           |
-+-----------------------------------------------------------------------------------+
-| OS Disk:                                                                          |
-|   OS Disk Type:          [ Standard SSD LRS ] (Cost-effective for learning)       |
-|   Delete with VM:        [x] (Ensures the disk is deleted when the VM is deleted) |
-|   Key Management:        [ Platform-managed key (Default) ]                       |
-|   Enable Ultra Disk:     [ Unchecked ]                                            |
-|                                                                                   |
-| Data Disks:                                                                       |
-|   Attach a new disk:     (Optional - used when extra storage beyond OS is needed) |
-+-----------------------------------------------------------------------------------+
-```
-
-#### Comparison of Azure Disk Types:
-- **Ultra Disk:** Sub-millisecond latency, up to 160,000 IOPS. For heavy Oracle/SAP workloads.
-- **Premium SSD v2:** Configurable IOPS and throughput independently at low cost.
-- **Premium SSD:** Baseline enterprise production disk for high IOPS.
-- **Standard SSD (Our Choice):** Ideal for dev/test, learning, and web servers with low traffic.
-- **Standard HDD:** Magnetic spinning drives; slowest performance, cheapest backup storage.
+### Step 3: Configure the "Disks" Tab
+- **OS Disk Type:** Change from Premium SSD to **Standard SSD LRS**. (Standard SSD is significantly cheaper and delivers plenty of speed for learning).
+- **Delete with VM:** Ensure `[x] Delete with VM` is checked for the OS disk so you don't leave orphaned storage disks racking up bills after deleting the VM.
 
 ---
 
-### Step 4: Tab 3 — "Networking" Configuration
-
-```
-+-----------------------------------------------------------------------------------+
-| NETWORKING TAB CONFIGURATION                                                      |
-+-----------------------------------------------------------------------------------+
-| Network Interface:                                                                |
-|   Virtual Network:       [ Create new or select: vnet-compute-demo ]              |
-|   Subnet:                [ default (10.0.0.0/24) ]                                |
-|   Public IP:             [ Create new: vm-web-demo-ip ]                           |
-|   NIC Network Security:  [ Basic ]                                                |
-|   Public Inbound Ports:  [ Allow selected ports: SSH (22), HTTP (80) ]            |
-|   Delete Public IP & NIC:[x] Check both! (Prevents orphaned billing!)             |
-|   Accelerated Networking:[ Enabled if supported by VM size ]                      |
-|   Load Balancing:        [ None ]                                                 |
-+-----------------------------------------------------------------------------------+
-```
+### Step 4: Configure the "Networking" Tab
+- **Virtual Network:** Azure automatically creates `rg-compute-demo-vnet`. Leave as default.
+- **Subnet:** Default `10.0.0.0/24`.
+- **Public IP:** Automatically generated name `vm-web-demo-ip`.
+- **NIC Network Security Group:** Select **Basic** (the ports 22 and 80 selected earlier will be automatically configured).
+- **Delete Public IP and NIC when VM is deleted:** Check `[x]` on both checkboxes! *(Crucial tip to prevent orphaned public IPs from charging your account after the VM is destroyed).*
 
 ---
 
-### Step 5: Tab 4 — "Management" Configuration
-- **Microsoft Defender for Cloud:** Free tier enabled.
-- **Identity:** `System-assigned managed identity` (Optional: enable if your VM needs to access Azure Storage or Key Vault without hardcoded credentials).
-- **Auto-shutdown (Crucial for Students!):**
-  - Check `[x] Enable auto-shutdown`.
-  - Shutdown time: `07:00 PM` (19:00).
-  - Time zone: Select your local time zone.
-  - Email notification: Enter your email address to receive an alert before shutdown.
-  - *Why?* This prevents leaving a VM running over the weekend and burning through your free subscription credits!
+### Step 5: Configure the "Management" Tab (Auto-Shutdown!)
+M Prashant shows a vital feature for students and beginners:
+- Scroll down to **Auto-shutdown**.
+- Check `[x] Enable auto-shutdown`.
+- **Shutdown time:** Set to `07:00 PM` (19:00).
+- **Time zone:** Select your local time zone.
+- **Email notification:** Enter your email address.
+- *Why is this so important?* If you forget to shut down your VM on Friday evening, Azure will automatically turn it off at 7:00 PM, saving your precious credits over the weekend!
 
 ---
 
-### Step 6: Tab 5 — "Monitoring" Configuration
-- **Boot diagnostics:** Select **Enable with managed storage account (recommended)**.
-  - *Why?* If the Linux kernel crashes or GRUB fails to boot, Boot Diagnostics captures console serial logs and screenshots so you can troubleshoot!
-
----
-
-### Step 7: Tab 6 — "Advanced" Configuration (Automated Custom Data Script)
+### Step 6: Configure the "Advanced" Tab (Custom Data / Automation)
 
 > [!IMPORTANT]
-> In the video, M Prashant explains that rather than manually logging into the VM to install packages, we can inject an automated bootstrap script into the **Custom data** field. Azure passes this script to `cloud-init`, which executes with root privileges the very first time the VM boots!
+> M Prashant says: *"Pay close attention here! In traditional hosting, you wait for the server to launch, log in over SSH, and type commands manually. But what if your company needs to deploy 20 web servers? You cannot manually log into 20 servers! Azure gives us a feature called **Custom Data**."*
 
-Scroll down to **Custom data** and paste the exact script shown in the video:
+Scroll down to the **Custom data** input box in the **Advanced** tab and paste the automated setup script:
 
 ```bash
 #!/bin/bash
@@ -280,32 +281,32 @@ sudo systemctl enable apache2
 echo "<html><h1>Welcome to Apache Web Server on Azure VM!</h1></html>" | sudo tee /var/www/html/index.html
 ```
 
-#### Line-by-Line Breakdown:
-1. `#!/bin/bash`: Shebang line telling the Linux kernel to execute this file using the Bash interpreter.
-2. `sudo apt update -y`: Refreshes the local package index against Ubuntu software mirrors.
-3. `sudo apt install -y apache2`: Installs the Apache HTTP daemon; `-y` automatically answers "yes" to all confirmation prompts.
-4. `sudo systemctl start apache2`: Boots the Apache web service into memory.
-5. `sudo systemctl enable apache2`: Configures systemd to automatically restart Apache if the VM is ever rebooted.
-6. `echo "..." | sudo tee /var/www/html/index.html`: Overwrites the default Apache splash page with our custom welcome banner.
+#### Line-by-Line Explanation of the Script:
+1. `#!/bin/bash`: Instructs the operating system to execute these commands using the Bash shell interpreter.
+2. `sudo apt update -y`: Refreshes the local software catalog from Ubuntu's package repositories.
+3. `sudo apt install -y apache2`: Downloads and installs the Apache HTTP web server; `-y` automatically answers "yes" to installation prompts.
+4. `sudo systemctl start apache2`: Launches the Apache web server daemon into active execution immediately.
+5. `sudo systemctl enable apache2`: Configures systemd to automatically restart the Apache service whenever the server reboots.
+6. `echo "<html>...</html>" | sudo tee /var/www/html/index.html`: Overwrites Apache's default splash page with our custom welcome title.
 
 ---
 
-### Step 8: Review + Create & Download Private Key
-1. Click **Review + create**.
-2. Wait for the green banner: `Validation passed`.
-3. Check the pricing estimate at the bottom (e.g., ~$0.0104/hour).
+### Step 7: Review + Create & Download the Private Key
+1. Click **Review + create** at the bottom.
+2. Azure validates every field. Confirm you see the green banner: `Validation passed`.
+3. Check the hourly price estimate displayed (e.g., ~$0.0104/hour).
 4. Click **Create**.
-5. **CRITICAL STEP:** A popup window titled **Generate new key pair** will appear:
+5. **CRITICAL POPUP WINDOW:** A modal titled **Generate new key pair** appears:
    - Click **Download private key and create resource**.
-   - Your browser will save `vm-web-demo_key.pem`.
-   - Store this file safely in your `Downloads` or `~/.ssh/` directory! If you lose this file, you cannot log in via SSH!
-6. Azure provisions the VM in 1 to 2 minutes.
+   - Your browser downloads the file: `vm-web-demo_key.pem`.
+   - **Do not lose this file!** It is your only cryptographic key to access your virtual machine.
+6. Azure deploys the VM in approximately 1 to 2 minutes.
 
 ---
 
 ## 8. Connecting to Your VM: The 6 Methods (Portal Connect & Cloud Shell)
 
-Once the VM deployment is complete, click **Go to resource**. Notice the top action bar on the VM Overview page featuring the **Connect** button:
+Once deployment is complete, click **Go to resource**. Notice the top action bar on the VM Overview page featuring the **Connect** button:
 
 ```
 +-----------------------------------------------------------------------------------+
