@@ -303,26 +303,26 @@ echo "<html><h1>Welcome to Apache Web Server on Azure VM!</h1></html>" | sudo te
 
 ---
 
-## 8. Connecting to Your VM via SSH
+## 8. Connecting to Your VM: The 6 Methods (Portal Connect & Cloud Shell)
 
-Once the deployment completes, click **Go to resource** and copy your VM's **Public IP address** (e.g., `20.120.45.67`).
+Once the VM deployment is complete, click **Go to resource**. Notice the top action bar on the VM Overview page featuring the **Connect** button:
 
 ```
-+-----------------------------------------------------------------------+
-|                       HOW SSH AUTHENTICATION WORKS                    |
-+-----------------------------------------------------------------------+
-|  Your Laptop (Client)                     Azure VM (Cloud Server)     |
-|                                                                       |
-|  [ vm-web-demo_key.pem ]                 [ ~/.ssh/authorized_keys ]   |
-|   (Private Key - SECRET)                  (Public Key - Stored on VM) |
-|            |                                           |              |
-|            +==== Encrypted Challenge Handshake =======>+              |
-|                                                                       |
-|  If math matches -> Access Granted as 'azureuser'!                    |
-+-----------------------------------------------------------------------+
++-----------------------------------------------------------------------------------+
+| AZURE VM OVERVIEW TOP BAR                                                         |
+| [ Connect v ]  [ Restart ]  [ Stop ]  [ Capture ]  [ Delete ]  [ Refresh ]        |
+|      |                                                                            |
+|      +---> [ Native SSH ]         ---> Standard terminal connection               |
+|      +---> [ Azure Cloud Shell ]  ---> In-browser terminal with uploaded key     |
+|      +---> [ Azure Bastion ]      ---> Browser TLS proxy without public IP        |
+|      +---> [ Serial Console ]     ---> Out-of-band emergency hardware terminal    |
+|      +---> [ Run Command ]        ---> Execute scripts without logging in         |
++-----------------------------------------------------------------------------------+
 ```
 
-### Option A: Connecting from macOS / Linux / Git Bash
+---
+
+### Method 1: Local Terminal / Git Bash / macOS (Native SSH)
 
 1. Open your terminal and navigate to your key's location:
    ```bash
@@ -330,7 +330,7 @@ Once the deployment completes, click **Go to resource** and copy your VM's **Pub
    ```
 
 2. **Fix File Permissions (Mandatory!):**
-   SSH clients reject private keys that have broad permissions:
+   SSH clients reject private keys that have broad read/write permissions:
    ```bash
    chmod 400 vm-web-demo_key.pem
    ```
@@ -350,11 +350,53 @@ Once the deployment completes, click **Go to resource** and copy your VM's **Pub
 
 ---
 
-### Option B: Connecting from Windows (PowerShell)
+### Method 2: Azure Cloud Shell (Browser-Based Terminal)
 
-Windows 10 and 11 have an OpenSSH client built-in:
+> [!TIP]
+> In the video, M Prashant highlights **Azure Cloud Shell** as an incredible feature for users who cannot or do not want to install SSH clients or terminal emulators on their local machines!
 
-1. Open **PowerShell** (no Administrator mode required).
+Azure Cloud Shell is an interactive, authenticated, browser-accessible terminal for managing Azure resources.
+
+```
++-----------------------------------------------------------------------------------+
+|                           AZURE CLOUD SHELL WORKFLOW                              |
++-----------------------------------------------------------------------------------+
+|  1. Click [ >_ ] Cloud Shell icon in the Azure Portal top navigation bar.         |
+|  2. Select [ Bash ] environment.                                                  |
+|  3. Click [ Upload/Download ] icon in Cloud Shell top bar -> [ Upload ].          |
+|  4. Select 'vm-web-demo_key.pem' from your local computer.                       |
+|  5. Run: chmod 400 vm-web-demo_key.pem                                            |
+|  6. Run: ssh -i vm-web-demo_key.pem azureuser@<YOUR_VM_PUBLIC_IP>                  |
+|  ===> You are instantly connected to your VM inside your browser!                 |
++-----------------------------------------------------------------------------------+
+```
+
+#### Step-by-Step Walkthrough in Portal:
+1. In the top navigation bar of the Azure Portal, click the **Cloud Shell icon (`>_`)** (next to the search bar and notifications bell).
+2. **First-time setup:** If prompted, select **Bash** and click **Create storage** (Azure attaches a small Azure Files share to persist your `$HOME` directory files).
+3. At the top of the Cloud Shell pane, click the **Upload/Download files icon** (two vertical arrows) -> click **Upload**.
+4. Browse your local files and select `vm-web-demo_key.pem`.
+5. Verify the key was uploaded:
+   ```bash
+   ls -la vm-web-demo_key.pem
+   ```
+6. Secure the key permissions inside Cloud Shell:
+   ```bash
+   chmod 400 vm-web-demo_key.pem
+   ```
+7. Connect to your VM directly from Cloud Shell:
+   ```bash
+   ssh -i vm-web-demo_key.pem azureuser@<YOUR_VM_PUBLIC_IP>
+   ```
+8. Type `yes` when prompted. You now have full terminal access inside the Azure Portal browser window!
+
+---
+
+### Method 3: Windows PowerShell & Command Prompt
+
+Windows 10 and 11 feature an OpenSSH client pre-installed:
+
+1. Open **PowerShell** as your standard user.
 2. Navigate to your Downloads folder:
    ```powershell
    cd C:\Users\<YourUsername>\Downloads
@@ -364,8 +406,8 @@ Windows 10 and 11 have an OpenSSH client built-in:
    ssh -i .\vm-web-demo_key.pem azureuser@<YOUR_VM_PUBLIC_IP>
    ```
 
-#### Fixing Windows Permission Errors:
-If Windows complains about key security permissions, run these PowerShell commands to reset Access Control Lists (ACLs):
+#### Fixing Windows Key Permission Errors (ACLs):
+If Windows complains about key security permissions, run these PowerShell commands to reset file inheritance:
 ```powershell
 icacls.exe .\vm-web-demo_key.pem /reset
 icacls.exe .\vm-web-demo_key.pem /grant:r "$($env:USERNAME):(R)"
@@ -374,7 +416,7 @@ icacls.exe .\vm-web-demo_key.pem /inheritance:r
 
 ---
 
-### Option C: Connecting via PuTTY (Windows Legacy)
+### Method 4: PuTTY for Windows (Legacy Connection)
 1. Download and open **PuTTYgen**.
 2. Click **Load** -> select `All Files (*.*)` -> choose `vm-web-demo_key.pem`.
 3. Click **Save private key** -> save as `vm-web-demo_key.ppk`.
@@ -386,9 +428,177 @@ icacls.exe .\vm-web-demo_key.pem /inheritance:r
 
 ---
 
-## 9. Manual Web Server Installation (Alternative Lab)
+### Method 5: Azure Serial Console (Emergency Out-of-Band Access)
 
-If you deployed the VM without the **Custom Data** script, you can install and configure web servers manually after logging in:
+What if you accidentally broke the SSH daemon configuration, or the VM's Network Security Group completely blocks port 22, or the network interface card fails?
+
+Azure provides the **Serial Console**:
+- Connects directly to the virtual machine's **COM1 serial port** via hypervisor hardware emulation!
+- **Requires zero network connectivity**—no public IP, no private IP, and no NSG rules are needed.
+- Shows raw Linux kernel boot messages, systemd startup logs, and kernel panic stack traces.
+
+#### How to use:
+1. In the Azure Portal, open your Virtual Machine page.
+2. In the left navigation menu, scroll down to **Help** -> click **Serial console**.
+3. Press **Enter** in the console window.
+4. Enter your Linux username (`azureuser`) and password to access the emergency shell!
+
+---
+
+### Method 6: Azure Run Command (Execute Scripts without SSH)
+
+Azure allows administrators to execute bash or PowerShell scripts on a running VM directly from the portal or Azure CLI via the background **Azure VM Guest Agent**:
+
+1. In the left navigation menu of your VM, scroll to **Operations** -> click **Run command**.
+2. Select **RunShellScript**.
+3. Type any bash script (e.g., `sudo systemctl status apache2 && df -h`).
+4. Click **Run**. Azure executes the script with root privileges and outputs the result in the portal window!
+
+---
+
+## 9. Essential Linux Commands Used in the VM Shell
+
+Once connected to your virtual machine shell, here is the complete, categorized reference of the essential Linux commands demonstrated in the video:
+
+### 1. Identity & System Information Commands
+```bash
+# Check who you are logged in as (prints 'azureuser')
+whoami
+
+# Print current working directory (prints '/home/azureuser')
+pwd
+
+# Check system hostname and private IP address
+hostname
+hostname -I
+
+# View complete Linux kernel and OS distribution details
+uname -a
+cat /etc/os-release
+
+# Switch to the root superuser account
+sudo -i
+# (or return to azureuser with: exit)
+```
+
+---
+
+### 2. Package Management Commands
+```bash
+# Refresh package repository lists against mirrors
+sudo apt update -y
+
+# Upgrade all installed packages to their latest security patches
+sudo apt upgrade -y
+
+# Install essential networking and troubleshooting utilities
+sudo apt install -y curl wget git net-tools htop
+```
+
+---
+
+### 3. Service & Process Management (systemd)
+```bash
+# Check if the Apache web server service is running
+sudo systemctl status apache2
+
+# Start the web server service
+sudo systemctl start apache2
+
+# Stop the web server service
+sudo systemctl stop apache2
+
+# Restart the service (useful after editing configuration files)
+sudo systemctl restart apache2
+
+# Enable the service to automatically boot upon VM reboot
+sudo systemctl enable apache2
+
+# Inspect the active running processes in the system
+ps aux | grep apache2
+
+# Monitor real-time CPU, RAM, and process activity
+top
+# (Press 'q' to exit top)
+```
+
+---
+
+### 4. Networking & Port Verification Commands
+```bash
+# Check listening TCP/UDP ports (Verify if port 80 is listening!)
+sudo netstat -tuln
+# Expected output: tcp 0 0 0.0.0.0:80 0.0.0.0:* LISTEN
+
+# Modern alternative to netstat (Socket Statistics)
+sudo ss -tulpn
+
+# Test the web server locally from INSIDE the VM terminal (Sub-millisecond loopback)
+curl http://localhost
+curl -I http://127.0.0.1
+# Expected output: HTTP/1.1 200 OK
+
+# Inspect private IP configuration and MAC addresses on network interfaces
+ip addr show
+# (Look for interface 'eth0' and inet '10.0.0.4')
+```
+
+---
+
+### 5. Disk, Filesystem & Memory Monitoring Commands
+```bash
+# Check available and used disk space on all mounted filesystems (Human-readable)
+df -h
+# Expected output: /dev/root mounted on / (shows size, used, and available space)
+
+# Check system RAM and swap memory usage in Megabytes or Gigabytes
+free -m
+free -h
+
+# List all attached block storage devices and partitions
+lsblk
+```
+
+---
+
+### 6. Real-Time Log Inspection & Troubleshooting Commands
+```bash
+# View the execution output of the Custom Data (cloud-init) startup script
+cat /var/log/cloud-init-output.log
+
+# View the detailed cloud-init system log
+sudo cat /var/log/cloud-init.log
+
+# Stream live incoming website visitor traffic in real time!
+sudo tail -f /var/log/apache2/access.log
+# (As users visit your Public IP in their browser, requests will log here live!)
+
+# View web server error logs
+sudo tail -f /var/log/apache2/error.log
+
+# View systemd journal logs specifically for the Apache daemon
+sudo journalctl -u apache2 --no-pager -n 50
+```
+
+---
+
+### 7. Web Content & File Management Commands
+```bash
+# Check the contents of the Apache web root directory
+ls -la /var/www/html/
+
+# Inspect the current index.html file
+cat /var/www/html/index.html
+
+# Overwrite index.html with a custom welcome page
+echo "<html><h1>Welcome to Apache Web Server on Azure VM!</h1></html>" | sudo tee /var/www/html/index.html
+```
+
+---
+
+## 10. Manual Web Server Installation (Alternative Lab)
+
+If you deployed the VM without the **Custom Data** script, you can install and configure web servers manually after logging into the shell:
 
 ### Installing Apache Manually:
 ```bash
@@ -426,7 +636,7 @@ echo "<h1>Welcome to Nginx on Azure VM!</h1>" | sudo tee /var/www/html/index.htm
 
 ---
 
-## 10. Testing Your Website in a Web Browser
+## 11. Testing Your Website in a Web Browser
 
 1. Go to the Azure Portal -> your VM overview page -> copy the **Public IP address**.
 2. Open any web browser (Chrome, Edge, Firefox).
@@ -439,7 +649,7 @@ echo "<h1>Welcome to Nginx on Azure VM!</h1>" | sudo tee /var/www/html/index.htm
 
 ---
 
-## 11. Troubleshooting: Network Security Groups (NSGs)
+## 12. Troubleshooting: Network Security Groups (NSGs)
 
 What if you paste the IP address into your browser and the page spins endlessly with `Site can't be reached`?
 
@@ -494,7 +704,7 @@ Incoming Internet Traffic: Port 80 (HTTP)
 
 ---
 
-## 12. Making Public IPs Static & Creating a DNS Name
+## 13. Making Public IPs Static & Creating a DNS Name
 
 By default, Azure Public IPs are **Dynamic**: if you stop and deallocate your VM, the Public IP is released back to Azure's global pool. When you start it back up, it receives a *different* IP address!
 
@@ -511,7 +721,7 @@ By default, Azure Public IPs are **Dynamic**: if you stop and deallocate your VM
 
 ---
 
-## 13. Attaching, Partitioning & Mounting Data Disks in Linux
+## 14. Attaching, Partitioning & Mounting Data Disks in Linux
 
 In production, you never store application databases on the OS disk. You attach a dedicated **Data Disk**.
 
@@ -562,7 +772,7 @@ In production, you never store application databases on the OS disk. You attach 
 
 ---
 
-## 14. Virtual Machine Lifecycle & Cost Management
+## 15. Virtual Machine Lifecycle & Cost Management
 
 Understanding VM states is essential to prevent surprise cloud bills:
 
@@ -580,7 +790,7 @@ Understanding VM states is essential to prevent surprise cloud bills:
 
 ---
 
-## 15. Essential Azure CLI Commands for VMs
+## 16. Essential Azure CLI Commands for VMs
 
 Manage your virtual machines directly from the command line or terminal:
 
@@ -630,7 +840,7 @@ az vm delete --resource-group rg-compute-demo --name vm-web-demo --yes
 
 ---
 
-## 16. Module Summary & Student Checklist
+## 17. Module Summary & Student Checklist
 - [x] Azure VMs provide Infrastructure as a Service (IaaS) with full root OS control.
 - [x] B-Series (Burstable) uses CPU credits and is ideal for budget-friendly learning.
 - [x] Availability Zones deliver 99.99% SLA across separate physical datacenters.
