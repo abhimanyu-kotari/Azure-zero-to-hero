@@ -1,11 +1,21 @@
-# 03 - Containers & Orchestration: Docker & Containerization Basics
+# 📦 03 - Containers & Orchestration: Docker & Containerization Basics
+
+<div align="center">
+
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes_AKS-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
+![Alpine Linux](https://img.shields.io/badge/Alpine_Linux-0D597F?style=for-the-badge&logo=alpinelinux&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![Microservices](https://img.shields.io/badge/Architecture-Microservices-orange?style=for-the-badge)
+
+</div>
 
 > **Video Reference:** [Microsoft AZURE in ONE VIDEO (MPrashant)](https://youtu.be/M1erI5a2wxQ)  
 > **Source Timeframe:** `03:47:55` to `04:23:32` (Docker, Containerization & AKS Orchestration)
 
 ---
 
-## 1. The Real-World Analogy: Why Were Containers Invented?
+## 🚢 1. The Real-World Analogy: Why Were Containers Invented?
 
 In the video, M Prashant introduces containers with the classic historical problem of global freight shipping:
 

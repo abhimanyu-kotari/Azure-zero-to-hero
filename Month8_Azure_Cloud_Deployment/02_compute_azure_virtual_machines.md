@@ -1,11 +1,21 @@
-# 02 - Compute: Azure Virtual Machines (VMs) Masterclass
+# 💻 02 - Compute: Azure Virtual Machines (VMs) Masterclass
+
+<div align="center">
+
+![Microsoft Azure](https://img.shields.io/badge/Azure_Virtual_Machines-0078D4?style=for-the-badge&logo=microsoft-azure&logoColor=white)
+![Ubuntu](https://img.shields.io/badge/Ubuntu_22.04_LTS-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
+![Apache](https://img.shields.io/badge/Apache_HTTP-D22128?style=for-the-badge&logo=apache&logoColor=white)
+![SSH](https://img.shields.io/badge/OpenSSH-Secure_Port_22-black?style=for-the-badge)
+![SCP](https://img.shields.io/badge/SCP-File_Transfer-blue?style=for-the-badge)
+
+</div>
 
 > **Video Reference:** [Microsoft AZURE in ONE VIDEO (MPrashant)](https://youtu.be/M1erI5a2wxQ)  
 > **Source Timeframe:** `00:51:43` to `01:44:39` (Full 53-Minute Step-by-Step Practical Walkthrough)
 
 ---
 
-## 1. What is Compute? (The Real-World Analogy)
+## 💻 1. What is Compute? (The Real-World Analogy)
 
 In the video, M Prashant starts by breaking down the word **Compute** using an everyday example:
 

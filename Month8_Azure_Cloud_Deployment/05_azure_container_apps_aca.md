@@ -1,11 +1,21 @@
-# 05 - Modern Microservices: Azure Container Apps (ACA)
+# 🏗️ 05 - Modern Microservices: Azure Container Apps (ACA)
+
+<div align="center">
+
+![Microsoft Azure](https://img.shields.io/badge/Azure_Container_Apps-0078D4?style=for-the-badge&logo=microsoft-azure&logoColor=white)
+![Scale to Zero](https://img.shields.io/badge/Scale_to_Zero-$0.00_Idle-brightgreen?style=for-the-badge)
+![Envoy Proxy](https://img.shields.io/badge/Envoy-Ingress_%26_SSL-purple?style=for-the-badge&logo=envoyproxy&logoColor=white)
+![KEDA](https://img.shields.io/badge/KEDA-Event_Autoscaling-red?style=for-the-badge)
+![Canary](https://img.shields.io/badge/Traffic_Splitting-Canary_80%2F20-blue?style=for-the-badge)
+
+</div>
 
 > **Video Reference:** [Microsoft AZURE in ONE VIDEO (MPrashant)](https://youtu.be/M1erI5a2wxQ)  
 > **Source Timeframe:** `04:29:29` to `04:38:36` (Serverless Microservices & Traffic Splitting)
 
 ---
 
-## 1. Why Azure Container Apps (ACA)? The Microservices Dilemma
+## 🏗️ 1. Why Azure Container Apps (ACA)? The Microservices Dilemma
 
 In the previous modules, we explored two container compute options:
 - **Azure Container Instances (ACI):** Perfect for running a single isolated container, but lacks built-in HTTP load balancing, traffic splitting, service discovery, and automatic scaling.

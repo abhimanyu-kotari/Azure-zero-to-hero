@@ -1,11 +1,20 @@
-# 07 - Security & Governance: Microsoft Entra ID & Azure RBAC
+# 🛡️ 07 - Security & Governance: Microsoft Entra ID & Azure RBAC
+
+<div align="center">
+
+![Microsoft Entra ID](https://img.shields.io/badge/Microsoft_Entra_ID-0078D4?style=for-the-badge&logo=microsoft-azure&logoColor=white)
+![Azure RBAC](https://img.shields.io/badge/Azure_RBAC-Least_Privilege-critical?style=for-the-badge)
+![Built-in Roles](https://img.shields.io/badge/Roles-Owner_%7C_Contributor_%7C_Reader-blue?style=for-the-badge)
+![Security](https://img.shields.io/badge/Security-AuthN_vs_AuthZ-purple?style=for-the-badge)
+
+</div>
 
 > **Video Reference:** [Microsoft AZURE in ONE VIDEO (MPrashant)](https://youtu.be/M1erI5a2wxQ)  
 > **Source Timeframe:** `05:25:07` to `05:57:26` (Identity, Governance & Access Control)
 
 ---
 
-## 1. Authentication vs. Authorization (The Airport Analogy)
+## 🛂 1. Authentication vs. Authorization (The Airport Analogy)
 
 In cloud security and identity management, engineers often confuse these two fundamental security concepts. In the video, M Prashant explains the distinction using an everyday airport travel analogy:
 

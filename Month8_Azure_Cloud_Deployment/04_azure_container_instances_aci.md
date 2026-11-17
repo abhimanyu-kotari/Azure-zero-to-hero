@@ -1,11 +1,20 @@
-# 04 - Serverless Containers: Azure Container Instances (ACI)
+# 🚀 04 - Serverless Containers: Azure Container Instances (ACI)
+
+<div align="center">
+
+![Microsoft Azure](https://img.shields.io/badge/Azure_Container_Instances-0078D4?style=for-the-badge&logo=microsoft-azure&logoColor=white)
+![Serverless](https://img.shields.io/badge/Compute-Serverless-green?style=for-the-badge)
+![Billing](https://img.shields.io/badge/Billing-Per--Second-yellow?style=for-the-badge)
+![Fast Deploy](https://img.shields.io/badge/Startup-5--10s-blue?style=for-the-badge)
+
+</div>
 
 > **Video Reference:** [Microsoft AZURE in ONE VIDEO (MPrashant)](https://youtu.be/M1erI5a2wxQ)  
 > **Source Timeframe:** `04:23:32` to `04:29:29` (Pure Serverless Containers)
 
 ---
 
-## 1. Why ACI? The Problem with VMs & Kubernetes
+## ⚡ 1. Why ACI? The Problem with VMs & Kubernetes
 
 In the previous modules, we saw two ways to run software in the cloud:
 1. **Azure Virtual Machines (IaaS):** You must provision a full operating system, manage security patches, configure firewall ports, and pay for the VM 24/7 even when nobody is using it.

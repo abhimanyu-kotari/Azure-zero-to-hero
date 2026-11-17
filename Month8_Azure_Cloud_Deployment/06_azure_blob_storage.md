@@ -1,11 +1,21 @@
-# 06 - Cloud Object Storage: Azure Storage Accounts & Blob Storage
+# 🗄️ 06 - Cloud Object Storage: Azure Storage Accounts & Blob Storage
+
+<div align="center">
+
+![Microsoft Azure](https://img.shields.io/badge/Azure_Blob_Storage-0078D4?style=for-the-badge&logo=microsoft-azure&logoColor=white)
+![Storage Tiers](https://img.shields.io/badge/Tiers-Hot_%7C_Cool_%7C_Cold_%7C_Archive-orange?style=for-the-badge)
+![Redundancy](https://img.shields.io/badge/Redundancy-LRS_%7C_ZRS_%7C_GRS_%7C_GZRS-blue?style=for-the-badge)
+![SAS Security](https://img.shields.io/badge/Auth-SAS_Tokens_%26_Entra_ID-brightgreen?style=for-the-badge)
+![AzCopy](https://img.shields.io/badge/CLI-AzCopy_Parallel_Transfer-purple?style=for-the-badge)
+
+</div>
 
 > **Video Reference:** [Microsoft AZURE in ONE VIDEO (MPrashant)](https://youtu.be/M1erI5a2wxQ)  
 > **Source Timeframe:** `04:43:40` to `05:25:07` (Unstructured Data, Access Tiers & SAS Tokens)
 
 ---
 
-## 1. What is an Azure Storage Account?
+## 🗄️ 1. What is an Azure Storage Account?
 
 An **Azure Storage Account** is a secure, cloud-managed container that provides massively scalable, highly durable storage for files, objects, disks, and messages.
 
