@@ -457,6 +457,89 @@ Azure allows administrators to execute bash or PowerShell scripts on a running V
 
 ---
 
+## 8.5 Copying Files from Your Local Computer to Azure VM via SCP
+
+> [!TIP]
+> In the masterclass video, M Prashant demonstrates how to transfer custom website files (like a custom `index.html`) created on your local computer (e.g. MacBook or Windows laptop) directly into your Azure virtual machine using **SCP (Secure Copy Protocol)**!
+
+```
++-----------------------------------------------------------------------------------+
+|                        LOCAL COMPUTER TO AZURE VM FILE TRANSFER                   |
++-----------------------------------------------------------------------------------+
+|                                                                                   |
+|  LOCAL COMPUTER (Mac / Windows / Linux)              AZURE CLOUD VIRTUAL MACHINE  |
+|  [ Downloads/index.html ]                                                         |
+|  [ Downloads/mywebserver_key.pem ]                                                |
+|            |                                                                      |
+|            | ===== scp -i key.pem index.html azureuser@<VM_IP>:~ =====>           |
+|            |        (Encrypted transfer over SSH Port 22)                         |
+|            |                                                                      |
+|            v                                                    v                 |
+|     File sent securely                                  Saved in: /home/azureuser |
+|                                                                 |                 |
+|                                                                 v (sudo cp)       |
+|                                                     Moved to: /var/www/html/      |
+|                                                                                   |
++-----------------------------------------------------------------------------------+
+```
+
+### Step 1: Verify the File Exists on Your Local Machine
+Open your local terminal (Terminal on macOS/Linux, Git Bash or PowerShell on Windows) and inspect your file:
+
+```bash
+ls Downloads/index.html
+```
+
+**Expected Output:**
+```text
+Downloads/index.html
+```
+
+---
+
+### Step 2: Execute the `scp` Command
+Use `scp` with the `-i` identity flag pointing to your downloaded `.pem` private key, followed by the local file path and the remote destination:
+
+```bash
+scp -i Downloads/mywebserver_key.pem Downloads/index.html azureuser@<YOUR_VM_PUBLIC_IP>:~
+```
+*(As seen in M Prashant's terminal: `scp -i Downloads/mywebserver_key.pem Downloads/index.html azureuser@172.198.160.237:~`)*
+
+#### Understanding the SCP Command Syntax:
+| Flag / Argument | What it Means |
+| :--- | :--- |
+| `scp` | **Secure Copy Protocol**: Copies files between hosts over an encrypted SSH connection. |
+| `-i Downloads/mywebserver_key.pem` | **Identity File**: Specifies the private SSH key required to authenticate with Azure. |
+| `Downloads/index.html` | **Source File**: The local file path on your laptop. |
+| `azureuser@<IP>:~` | **Target Destination**: Connects as user `azureuser` to your VM IP, and places the file into the user's home directory (`~` or `/home/azureuser/`). |
+
+> **Why copy to `~` (Home Directory) first?**  
+> In Linux, the web root folder `/var/www/html/` is owned by `root`. Standard SSH users do not have direct write permissions to root system directories over SCP. Transferring to your home directory first and then moving it with `sudo` is the secure, industry-standard practice!
+
+---
+
+### Step 3: Move the File into Apache's Web Root on the Azure VM
+Now, SSH into your Azure VM and move `index.html` to Apache's active hosting directory:
+
+```bash
+# 1. Connect to the VM
+ssh -i Downloads/mywebserver_key.pem azureuser@<YOUR_VM_PUBLIC_IP>
+
+# 2. Verify the uploaded file is in your home directory
+ls -la ~/index.html
+
+# 3. Copy or move index.html into Apache web directory with sudo
+sudo cp ~/index.html /var/www/html/index.html
+
+# 4. Verify Apache sees the new file
+ls -la /var/www/html/index.html
+
+# 5. Restart Apache to ensure immediate caching refresh
+sudo systemctl restart apache2
+```
+
+---
+
 ## 9. Comprehensive Port & Connectivity Testing Lab (Commands Used After Connecting)
 
 > [!IMPORTANT]
