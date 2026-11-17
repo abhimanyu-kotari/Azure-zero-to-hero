@@ -9,6 +9,7 @@
 
 <img width="905" height="431" alt="image" src="https://github.com/user-attachments/assets/c538fc3e-ecc5-4383-b296-ee08743f8fd8" />
 
+
 Before cloud computing existed, companies had to buy physical computers (called physical servers) for every single application they wanted to run. If a company needed a web server, a database server, and an email server, they had to buy three separate physical machines. Most of the time, these machines used only 5% to 10% of their total power, leaving 90% of the hardware wasted!
 
 **Virtualization** is the technology that solved this problem.
